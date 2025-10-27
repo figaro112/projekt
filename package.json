@@ -1,0 +1,8 @@
+{
+"scripts": {
+"build": "elm make src/Main.elm --output=public/elm.js",
+"dev": "elm make src/Main.elm --output=public/elm.js && live-server public --quiet",
+"format": "elm-format --yes src tests",
+"test": "elm-test"
+}
+}
