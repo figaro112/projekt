@@ -1,6 +1,7 @@
 module Editor.Update exposing (History, Msg(..), apply, initHistory, push, redo, undo)
 
 import Automaton.Core as A
+import Dict
 
 
 type alias History a =
@@ -47,6 +48,7 @@ type Msg
     | SetStart (Maybe A.StateId)
     | AddTransition A.StateId String A.StateId
     | RemoveTransition Int
+    | MoveState A.StateId Float Float
 
 
 apply : Msg -> A.Automaton -> A.Automaton
@@ -56,8 +58,31 @@ apply msg a =
             let
                 newId =
                     (List.maximum a.states |> Maybe.withDefault -1) + 1
+
+                n =
+                    List.length a.states + 1
+
+                angle =
+                    2 * pi * toFloat (List.length a.states) / toFloat (max 1 n)
+
+                radius =
+                    180
+
+                centerX =
+                    420
+
+                centerY =
+                    280
+
+                newPos =
+                    { x = centerX + radius * cos angle
+                    , y = centerY + radius * sin angle
+                    }
             in
-            { a | states = a.states ++ [ newId ] }
+            { a
+                | states = a.states ++ [ newId ]
+                , positions = Dict.insert newId newPos a.positions
+            }
 
         RemoveState sid ->
             { a
@@ -70,6 +95,7 @@ apply msg a =
                     else
                         a.start
                 , accepting = List.filter ((/=) sid) a.accepting
+                , positions = Dict.remove sid a.positions
             }
 
         ToggleAccepting sid ->
@@ -92,4 +118,9 @@ apply msg a =
                         |> List.indexedMap Tuple.pair
                         |> List.filter (\( i, _ ) -> i /= idx)
                         |> List.map Tuple.second
+            }
+
+        MoveState sid x y ->
+            { a
+                | positions = Dict.insert sid { x = x, y = y } a.positions
             }

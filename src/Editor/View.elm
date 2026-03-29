@@ -50,5 +50,5 @@ sidebar cfg a =
                             ]
                     )
             )
-        , p [] [ text "Pozn.: UI pre pridanie prechodu (výber z/do a symbol) príde po M1." ]
+        , p [] [ text "Pozn.: UI pre pridanie prechodu (výber z/do a symbol) je plánované hneď po M1." ]
         ]

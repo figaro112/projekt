@@ -1,0 +1,270 @@
+/* === RESET & BASE === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body, #app {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    color: #1a1a1a;
+    background: #f8f9fa;
+}
+
+/* === LAYOUT === */
+.layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100%;
+    background: #ffffff;
+}
+
+/* === SIDEBAR === */
+.sidebar {
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+    color: #ecf0f1;
+    padding: 24px;
+    overflow-y: auto;
+    border-right: 1px solid #1a252f;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar h2, .sidebar h3, .sidebar h4 {
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.sidebar h3 {
+    font-size: 1.3rem;
+    margin-top: 0;
+}
+
+.sidebar h4 {
+    font-size: 1rem;
+    margin-top: 24px;
+    color: #bdc3c7;
+}
+
+.sidebar p {
+    font-size: 0.875rem;
+    color: #95a5a6;
+    margin: 16px 0;
+    line-height: 1.5;
+}
+
+/* Sidebar buttons */
+.sidebar button {
+    padding: 8px 14px;
+    margin: 4px 4px 4px 0;
+    background: rgba(52, 152, 219, 0.15);
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    border-radius: 6px;
+    color: #3498db;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar .toolbar button {
+    width: auto;
+    display: inline-block;
+}
+
+.sidebar button:hover {
+    background: rgba(52, 152, 219, 0.25);
+    border-color: rgba(52, 152, 219, 0.5);
+    color: #5dade2;
+    transform: translateY(-1px);
+}
+
+.sidebar button:active {
+    transform: translateY(0);
+}
+
+/* State list */
+.sidebar ul {
+    list-style: none;
+    margin: 12px 0;
+    padding: 0;
+}
+
+.sidebar li {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar li button {
+    width: auto;
+    padding: 4px 8px;
+    margin: 0;
+    font-size: 0.75rem;
+    background: rgba(231, 76, 60, 0.15);
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+.sidebar li button:hover {
+    background: rgba(231, 76, 60, 0.25);
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+/* === MAIN CANVAS === */
+.canvas {
+    padding: 32px 40px;
+    overflow-y: auto;
+    background: #ffffff;
+}
+
+.canvas h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    color: #2c3e50;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.canvas h3:first-child {
+    margin-top: 0;
+}
+
+/* === TOOLBAR === */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+
+.toolbar button {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.toolbar button:hover {
+    background: linear-gradient(135deg, #5dade2 0%, #3498db 100%);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    transform: translateY(-1px);
+}
+
+.toolbar button:active {
+    transform: translateY(0);
+}
+
+/* === INPUTS === */
+input[type="text"],
+input[type="number"],
+input,
+select,
+textarea {
+    padding: 8px 12px;
+    border: 1.5px solid #dfe6e9;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    color: #2c3e50;
+    margin-right: 8px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+textarea {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 10px;
+    margin-right: 0;
+    resize: vertical;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+select {
+    cursor: pointer;
+    padding-right: 32px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232c3e50' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+/* === GRAPH SVG === */
+svg {
+    border: 2px solid #ecf0f1;
+    border-radius: 12px;
+    background: #fafbfc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    max-width: 100%;
+    margin: 20px 0;
+}
+
+/* === MESSAGE BOX === */
+p {
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    margin-top: 16px;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f3f5;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #b2bec3;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        border-right: none;
+        border-bottom: 1px solid #1a252f;
+    }
+}
