@@ -953,8 +953,6 @@ viewSidebar model =
                             ]
                         , h1 [ class "mt-4 text-3xl font-black tracking-tight text-white" ]
                             [ text "SimulĂˇtor DFA" ]
-                        , p [ class "mt-2 text-sm leading-6 text-slate-300" ]
-                            [ text "ElegantnĂ˝ editor, simulĂˇcia a algoritmy pre koneÄŤnĂ© automaty v jednom rozhranĂ­." ]
                         ]
                     , div [ class "flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300 shadow-lg shadow-amber-500/10" ]
                         [ i [ class "fas fa-project-diagram text-xl" ] [] ]
