@@ -325,7 +325,7 @@ simulationStatusText simulation =
 
 dfaOnlyMessage : String -> String
 dfaOnlyMessage actionLabel =
-    actionLabel ++ " je dostupne iba pre DFA. Najprv pouzi NFA → DFA."
+    actionLabel ++ " je dostupne iba pre DFA. Najprv pouzi NFA â†’ DFA."
 
 
 guardDeterministic : String -> A.Automaton -> Model -> Maybe Model
@@ -420,7 +420,7 @@ init =
     , inputWord = ""
     , simulation = resetSimulation initialAutomaton ""
     , playbackSpeed = Normal
-    , msgInfo = "Vitaj v editore. Môžeš pridávať stavy, prechody a okamžite testovať slová."
+    , msgInfo = "Vitaj v editore. MĂ´ĹľeĹˇ pridĂˇvaĹĄ stavy, prechody a okamĹľite testovaĹĄ slovĂˇ."
     , fromSel = "0"
     , symSel = ""
     , toSel = "0"
@@ -498,7 +498,7 @@ update msg model =
 
                 info =
                     if List.isEmpty errs then
-                        "Zmena uložená."
+                        "Zmena uloĹľenĂˇ."
 
                     else
                         renderErrors errs
@@ -653,14 +653,14 @@ update msg model =
                         update (Editor (Ed.AddTransition f sym t)) { model | symSel = "" }
 
                 _ ->
-                    { model | msgInfo = "Vyplň From, To a Symbol." }
+                    { model | msgInfo = "VyplĹ From, To a Symbol." }
 
         ExportJson ->
             let
                 jsonStr =
                     exportJsonString model.history.present
             in
-            { model | exportText = jsonStr, msgInfo = "JSON export je pripravený." }
+            { model | exportText = jsonStr, msgInfo = "JSON export je pripravenĂ˝." }
 
         DownloadJsonFile ->
             let
@@ -795,7 +795,7 @@ update msg model =
                         { model | msgInfo = dfaOnlyMessage "Zjednotenie" }
 
                 Err e ->
-                    { model | msgInfo = "JSON druhého automatu je neplatný: " ++ D.errorToString e }
+                    { model | msgInfo = "JSON druhĂ©ho automatu je neplatnĂ˝: " ++ D.errorToString e }
 
         IntersectWithOther ->
             case D.decodeString Codec.decode model.otherText of
@@ -820,7 +820,7 @@ update msg model =
                         { model | msgInfo = dfaOnlyMessage "Prienik" }
 
                 Err e ->
-                    { model | msgInfo = "JSON druhého automatu je neplatný: " ++ D.errorToString e }
+                    { model | msgInfo = "JSON druhĂ©ho automatu je neplatnĂ˝: " ++ D.errorToString e }
 
         GraphMsg graphMsg ->
             case graphMsg of
@@ -837,7 +837,7 @@ update msg model =
                             , offsetY = clientY - pos.y
                             , original = Just model.history.present
                             }
-                        , msgInfo = "Presúvaj stav myšou priamo na plátne."
+                        , msgInfo = "PresĂşvaj stav myĹˇou priamo na plĂˇtne."
                     }
 
                 Graph.Drag clientX clientY ->
@@ -875,7 +875,7 @@ update msg model =
                                     , future = []
                                     }
                                 , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing }
-                                , msgInfo = "Pozícia stavu bola uložená."
+                                , msgInfo = "PozĂ­cia stavu bola uloĹľenĂˇ."
                             }
 
                         Nothing ->
@@ -897,13 +897,13 @@ renderErrors errs =
                     (\e ->
                         case e of
                             V.StartMissing ->
-                                "Chýba štartovací stav."
+                                "ChĂ˝ba ĹˇtartovacĂ­ stav."
 
                             V.StartNotInStates ->
-                                "Štartovací stav nie je v množine states."
+                                "Ĺ tartovacĂ­ stav nie je v mnoĹľine states."
 
                             V.AcceptingNotInStates xs ->
-                                "Akceptačné stavy mimo states: "
+                                "AkceptaÄŤnĂ© stavy mimo states: "
                                     ++ String.join ", " (List.map String.fromInt xs)
 
                             V.SymbolsOutsideAlphabet syms ->
@@ -911,11 +911,11 @@ renderErrors errs =
                                     ++ String.join ", " syms
 
                             V.TransitionStatesNotInStates pairs ->
-                                "Prechody odkazujú na neexistujúce stavy: "
+                                "Prechody odkazujĂş na neexistujĂşce stavy: "
                                     ++ String.join ", "
                                         (List.map
                                             (\( fromState, toState ) ->
-                                                "(" ++ String.fromInt fromState ++ " → " ++ String.fromInt toState ++ ")"
+                                                "(" ++ String.fromInt fromState ++ " â†’ " ++ String.fromInt toState ++ ")"
                                             )
                                             pairs
                                         )
@@ -952,9 +952,9 @@ viewSidebar model =
                             , text "Elm DFA Studio"
                             ]
                         , h1 [ class "mt-4 text-3xl font-black tracking-tight text-white" ]
-                            [ text "Simulátor DFA" ]
+                            [ text "SimulĂˇtor DFA" ]
                         , p [ class "mt-2 text-sm leading-6 text-slate-300" ]
-                            [ text "Elegantný editor, simulácia a algoritmy pre konečné automaty v jednom rozhraní." ]
+                            [ text "ElegantnĂ˝ editor, simulĂˇcia a algoritmy pre koneÄŤnĂ© automaty v jednom rozhranĂ­." ]
                         ]
                     , div [ class "flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300 shadow-lg shadow-amber-500/10" ]
                         [ i [ class "fas fa-project-diagram text-xl" ] [] ]
@@ -970,7 +970,7 @@ viewSidebar model =
             [ div [ class "rounded-2xl border border-[#45352b] bg-[#1a1411]/85 p-1.5 flex gap-1" ]
                 [ viewTabButton EditorTab "fas fa-edit" "Editor" model.selectedTab
                 , viewTabButton AlgorithmsTab "fas fa-cogs" "Algoritmy" model.selectedTab
-                , viewTabButton SimulationTab "fas fa-play" "Simulácia" model.selectedTab
+                , viewTabButton SimulationTab "fas fa-play" "SimulĂˇcia" model.selectedTab
                 ]
             ]
         , div [ class "flex-1 overflow-y-auto px-4 py-4 scrollbar-thin" ]
@@ -983,15 +983,6 @@ viewSidebar model =
 
                 SimulationTab ->
                     viewSimulationPanel model
-            ]
-        , div [ class "border-t border-slate-800 px-5 py-4" ]
-            [ div [ class "rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-400" ]
-                [ div [ class "flex items-center justify-between gap-3" ]
-                    [ span [ class "font-semibold text-slate-300" ] [ text "Tip" ]
-                    , span [ class "rounded-full bg-slate-800 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-400" ] [ text "drag & drop" ]
-                    ]
-                , p [ class "mt-2 text-xs leading-5 text-slate-400" ] [ text "Stavy môžeš chytiť myšou a rozmiestniť po plátne. Podtaby vľavo znižujú potrebu scrollovania." ]
-                ]
             ]
         ]
 
@@ -1056,17 +1047,17 @@ viewEditorPanel model automaton =
             StatesSub ->
                 viewSectionCard
                     "Stavy"
-                    "Pridávaj stavy, označ štart a akceptačné stavy."
+                    "PridĂˇvaj stavy, oznaÄŤ Ĺˇtart a akceptaÄŤnĂ© stavy."
                     [ button
                         [ class "w-full rounded-2xl bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] px-4 py-3 text-sm font-semibold text-[#1b120e] shadow-lg shadow-amber-900/30 transition hover:translate-y-[-1px] hover:shadow-amber-900/40"
                         , onClick (Editor Ed.AddState)
                         ]
                         [ i [ class "fas fa-plus-circle mr-2" ] []
-                        , text "Pridať stav"
+                        , text "PridaĹĄ stav"
                         ]
                     , div [ class "mt-4 space-y-3 max-h-[480px] overflow-y-auto scrollbar-thin" ]
                         (if List.isEmpty automaton.states then
-                            [ viewEmptyPanel "Zatiaľ nemáš žiadny stav." ]
+                            [ viewEmptyPanel "ZatiaÄľ nemĂˇĹˇ Ĺľiadny stav." ]
 
                          else
                             List.map (viewStateCard automaton) automaton.states
@@ -1075,8 +1066,8 @@ viewEditorPanel model automaton =
 
             TransitionFormSub ->
                 viewSectionCard
-                    "Nový prechod"
-                    "Definuj smer a symbol. Prechody sa okamžite vykreslia do grafu."
+                    "NovĂ˝ prechod"
+                    "Definuj smer a symbol. Prechody sa okamĹľite vykreslia do grafu."
                     [ div [ class "grid grid-cols-1 gap-3" ]
                         [ viewSelectField "Z (From)" model.fromSel automaton.states FromChanged
                         , viewInputField "Symbol" model.symSel "napr. 0, a, x" SymChanged
@@ -1086,17 +1077,17 @@ viewEditorPanel model automaton =
                             , onClick AddTransitionClicked
                             ]
                             [ i [ class "fas fa-plus mr-2" ] []
-                            , text "Pridať prechod"
+                            , text "PridaĹĄ prechod"
                             ]
                         ]
                     ]
 
             TransitionListSub ->
                 viewSectionCard
-                    "Aktívne prechody"
-                    "Prehľad všetkých definovaných prechodov v automate."
+                    "AktĂ­vne prechody"
+                    "PrehÄľad vĹˇetkĂ˝ch definovanĂ˝ch prechodov v automate."
                     [ if List.isEmpty automaton.transitions then
-                        viewEmptyPanel "Zatiaľ nemáš žiadne prechody."
+                        viewEmptyPanel "ZatiaÄľ nemĂˇĹˇ Ĺľiadne prechody."
 
                       else
                         div [ class "space-y-2 max-h-[520px] overflow-y-auto scrollbar-thin" ]
@@ -1167,13 +1158,13 @@ viewStateCard automaton stateId =
                     [ div [ class "font-semibold text-white" ] [ text ("Stav " ++ String.fromInt stateId) ]
                     , div [ class "mt-1 flex flex-wrap gap-2" ]
                         ((if isStart then
-                            [ span [ class "rounded-full bg-blue-500/15 px-2.5 py-1 text-[11px] font-semibold text-blue-200" ] [ text "Štart" ] ]
+                            [ span [ class "rounded-full bg-blue-500/15 px-2.5 py-1 text-[11px] font-semibold text-blue-200" ] [ text "Ĺ tart" ] ]
 
                           else
                             []
                          )
                             ++ (if isAccepting then
-                                    [ span [ class "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200" ] [ text "Akceptačný" ] ]
+                                    [ span [ class "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200" ] [ text "AkceptaÄŤnĂ˝" ] ]
 
                                 else
                                     []
@@ -1185,17 +1176,17 @@ viewStateCard automaton stateId =
                 [ viewIconButton
                     (if isAccepting then "bg-emerald-500 text-white" else "bg-[#2a201a] text-[#c9b29a] hover:bg-emerald-500 hover:text-white")
                     "fas fa-check"
-                    "Akceptačný stav"
+                    "AkceptaÄŤnĂ˝ stav"
                     (Editor (Ed.ToggleAccepting stateId))
                 , viewIconButton
                     (if isStart then "bg-amber-400 text-slate-950" else "bg-[#2a201a] text-[#c9b29a] hover:bg-amber-400 hover:text-slate-950")
                     "fas fa-star"
-                    "Štartovací stav"
+                    "Ĺ tartovacĂ­ stav"
                     (Editor (Ed.SetStart (Just stateId)))
                 , viewIconButton
                     "bg-[#2a201a] text-[#c9b29a] hover:bg-rose-500 hover:text-white"
                     "fas fa-trash"
-                    "Odstrániť stav"
+                    "OdstrĂˇniĹĄ stav"
                     (Editor (Ed.RemoveState stateId))
                 ]
             ]
@@ -1225,7 +1216,7 @@ viewTransitionItem idx transition =
         , button
             [ class "flex h-8 w-8 items-center justify-center rounded-xl bg-[#2a201a] text-[#c9b29a] transition hover:bg-rose-500 hover:text-white"
             , onClick (Editor (Ed.RemoveTransition idx))
-            , title "Odstrániť prechod"
+            , title "OdstrĂˇniĹĄ prechod"
             ]
             [ i [ class "fas fa-times text-xs" ] [] ]
         ]
@@ -1235,26 +1226,26 @@ viewAlgorithmsPanel : Model -> Html Msg
 viewAlgorithmsPanel model =
     div [ class "space-y-4" ]
         [ div [ class "rounded-2xl border border-[#45352b] bg-[#1a1411]/85 p-1.5 flex gap-1" ]
-            [ viewInnerTabButton (model.algorithmsSubTab == AlgoBasicSub) "fas fa-cogs" "Základ" (SelectAlgorithmsSubTab AlgoBasicSub)
-            , viewInnerTabButton (model.algorithmsSubTab == AlgoProductSub) "fas fa-object-group" "Množiny" (SelectAlgorithmsSubTab AlgoProductSub)
+            [ viewInnerTabButton (model.algorithmsSubTab == AlgoBasicSub) "fas fa-cogs" "ZĂˇklad" (SelectAlgorithmsSubTab AlgoBasicSub)
+            , viewInnerTabButton (model.algorithmsSubTab == AlgoProductSub) "fas fa-object-group" "MnoĹľiny" (SelectAlgorithmsSubTab AlgoProductSub)
             , viewInnerTabButton (model.algorithmsSubTab == AlgoDataSub) "fas fa-file-code" "JSON" (SelectAlgorithmsSubTab AlgoDataSub)
             ]
         , case model.algorithmsSubTab of
             AlgoBasicSub ->
                 viewSectionCard
                     "Algoritmy"
-                    "Operácie nad DFA a NFA s okamžitým prepísaním výsledku do plátna."
+                    "OperĂˇcie nad DFA a NFA s okamĹľitĂ˝m prepĂ­sanĂ­m vĂ˝sledku do plĂˇtna."
                     [ div [ class "space-y-3" ]
-                        [ viewAlgorithmButton "fas fa-compress" "Minimalizácia" "Odstráni redundantné stavy a zjednoduší automat." MinimizeDfa
-                        , viewAlgorithmButton "fas fa-not-equal" "Komplement" "Invertuje akceptačné stavy pri totalizovanom DFA." ComplementDfa
-                        , viewAlgorithmButton "fas fa-code-branch" "NFA → DFA" "Prevedie nedeterministický automat na deterministický." NfaToDfa
+                        [ viewAlgorithmButton "fas fa-compress" "MinimalizĂˇcia" "OdstrĂˇni redundantnĂ© stavy a zjednoduĹˇĂ­ automat." MinimizeDfa
+                        , viewAlgorithmButton "fas fa-not-equal" "Komplement" "Invertuje akceptaÄŤnĂ© stavy pri totalizovanom DFA." ComplementDfa
+                        , viewAlgorithmButton "fas fa-code-branch" "NFA â†’ DFA" "Prevedie nedeterministickĂ˝ automat na deterministickĂ˝." NfaToDfa
                         ]
                     ]
 
             AlgoProductSub ->
                 viewSectionCard
-                    "Množinové operácie"
-                    "Vlož druhý automat v JSON a vytvor zjednotenie alebo prienik."
+                    "MnoĹľinovĂ© operĂˇcie"
+                    "VloĹľ druhĂ˝ automat v JSON a vytvor zjednotenie alebo prienik."
                     [ textarea
                         [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-slate-200 outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                         , rows 8
@@ -1264,8 +1255,8 @@ viewAlgorithmsPanel model =
                         ]
                         []
                     , div [ class "mt-3 space-y-3" ]
-                        [ viewAlgorithmButton "fas fa-object-group" "Zjednotenie A ∪ B" "Produktová konštrukcia nad použitými symbolmi." UnionWithOther
-                        , viewAlgorithmButton "fas fa-layer-group" "Prienik A ∩ B" "Produktová konštrukcia s AND prijímaním." IntersectWithOther
+                        [ viewAlgorithmButton "fas fa-object-group" "Zjednotenie A âŞ B" "ProduktovĂˇ konĹˇtrukcia nad pouĹľitĂ˝mi symbolmi." UnionWithOther
+                        , viewAlgorithmButton "fas fa-layer-group" "Prienik A â© B" "ProduktovĂˇ konĹˇtrukcia s AND prijĂ­manĂ­m." IntersectWithOther
                         ]
                     ]
 
@@ -1318,7 +1309,7 @@ viewAlgorithmsPanel model =
                         [ textarea
                             [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-slate-200 outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                             , rows 8
-                            , placeholder "Vlož JSON pre import..."
+                            , placeholder "VloĹľ JSON pre import..."
                             , value model.importText
                             , onInput ImportTextChanged
                             ]
@@ -1335,7 +1326,7 @@ viewAlgorithmsPanel model =
                             , onClick ImportJson
                             ]
                             [ i [ class "fas fa-upload mr-2" ] []
-                            , text "Importovať automat"
+                            , text "ImportovaĹĄ automat"
                             ]
                         ]
                     ]
@@ -1406,7 +1397,7 @@ viewTapeCell activeIndex cellIndex symbol =
 
         displaySymbol =
             if String.isEmpty symbol then
-                "□"
+                "â–ˇ"
 
             else
                 symbol
@@ -1439,7 +1430,7 @@ viewSimulationPanel model =
         currentStateLabel =
             simulation.currentState
                 |> Maybe.map (\stateId -> "q" ++ String.fromInt stateId)
-                |> Maybe.withDefault "—"
+                |> Maybe.withDefault "â€”"
     in
     div [ class "space-y-5" ]
         [ viewSectionCard
@@ -1470,7 +1461,7 @@ viewSimulationPanel model =
                     ]
                 , div [ class "rounded-2xl border border-[#5a4638] bg-[#1e1713] px-4 py-3 text-[#e7d3bf]" ]
                     [ div [ class "text-[11px] uppercase tracking-[0.16em] text-[#bca48d]" ] [ text "Aktualny symbol" ]
-                    , div [ class "mt-2 text-lg font-bold text-white" ] [ text (Maybe.withDefault "□" (currentTapeSymbol simulation)) ]
+                    , div [ class "mt-2 text-lg font-bold text-white" ] [ text (Maybe.withDefault "â–ˇ" (currentTapeSymbol simulation)) ]
                     ]
                 ]
             , p [ class "mt-3 text-sm text-[#c9b29a]" ] [ text (simulationStatusText simulation) ]
@@ -1557,7 +1548,7 @@ viewMain model =
                 [ div [ class "rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-5 shadow-2xl shadow-black/20" ]
                     [ div [ class "mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" ]
                         [ div []
-                            [ h3 [ class "text-xl font-bold text-white" ] [ text "Plátno automatu" ]
+                            [ h3 [ class "text-xl font-bold text-white" ] [ text "PlĂˇtno automatu" ]
                             ]
                         , div [ class "flex flex-wrap gap-3" ]
                             [ viewToolbarButton "fas fa-undo" "Undo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Undo
@@ -1569,8 +1560,8 @@ viewMain model =
                             [ div [ class "max-w-md px-6" ]
                                 [ div [ class "mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20" ]
                                     [ i [ class "fas fa-project-diagram text-2xl" ] [] ]
-                                , h4 [ class "mt-5 text-2xl font-bold text-white" ] [ text "Plátno je pripravené" ]
-                                , p [ class "mt-3 text-sm leading-7 text-slate-400" ] [ text "Začni pridaním prvého stavu v ľavom paneli. Potom doplň prechody a spusti simuláciu alebo algoritmy." ]
+                                , h4 [ class "mt-5 text-2xl font-bold text-white" ] [ text "PlĂˇtno je pripravenĂ©" ]
+                                , p [ class "mt-3 text-sm leading-7 text-slate-400" ] [ text "ZaÄŤni pridanĂ­m prvĂ©ho stavu v Äľavom paneli. Potom doplĹ prechody a spusti simulĂˇciu alebo algoritmy." ]
                                 ]
                             ]
 
@@ -1618,7 +1609,7 @@ viewBottomStats automaton =
 
         alphabetPreview =
             if List.isEmpty alphabetList then
-                "∅"
+                "â…"
 
             else
                 "{ " ++ String.join ", " alphabetList ++ " }"
@@ -1631,14 +1622,14 @@ viewBottomStats automaton =
     in
     div [ class "mt-6 rounded-[32px] border border-[#45352b] bg-[#1a1411]/88 p-5 shadow-2xl shadow-black/10" ]
         [ div [ class "mb-4" ]
-            [ h3 [ class "text-xl font-bold text-white" ] [ text "Štatistické údaje" ]
-            , p [ class "mt-1 text-sm leading-6 text-slate-400" ] [ text "Prehľad aktuálneho automatu presunutý pod plátno." ]
+            [ h3 [ class "text-xl font-bold text-white" ] [ text "Ĺ tatistickĂ© Ăşdaje" ]
+            , p [ class "mt-1 text-sm leading-6 text-slate-400" ] [ text "PrehÄľad aktuĂˇlneho automatu presunutĂ˝ pod plĂˇtno." ]
             ]
         , div [ class "grid gap-4 xl:grid-cols-5" ]
-            [ viewTopStat "Počet stavov" (String.fromInt (List.length automaton.states)) "fas fa-circle" "Základné uzly automatu"
-            , viewTopStat "Počet prechodov" (String.fromInt (List.length automaton.transitions)) "fas fa-random" "Všetky definované hrany"
-            , viewTopStat "Použitá abeceda" (String.fromInt (List.length alphabetList)) "fas fa-font" alphabetPreview
-            , viewTopStat "Štart" (Maybe.withDefault "—" (Maybe.map (\s -> "q" ++ String.fromInt s) automaton.start)) "fas fa-play" "Vstupný stav automatu"
+            [ viewTopStat "PoÄŤet stavov" (String.fromInt (List.length automaton.states)) "fas fa-circle" "ZĂˇkladnĂ© uzly automatu"
+            , viewTopStat "PoÄŤet prechodov" (String.fromInt (List.length automaton.transitions)) "fas fa-random" "VĹˇetky definovanĂ© hrany"
+            , viewTopStat "PouĹľitĂˇ abeceda" (String.fromInt (List.length alphabetList)) "fas fa-font" alphabetPreview
+            , viewTopStat "Ĺ tart" (Maybe.withDefault "â€”" (Maybe.map (\s -> "q" ++ String.fromInt s) automaton.start)) "fas fa-play" "VstupnĂ˝ stav automatu"
             , viewTopStat "Rezim" (if deterministic then "DFA" else "NFA") "fas fa-code-branch" (if deterministic then "Bez duplicitnych hran pre rovnaky symbol" else "Nasli sa viacnasobne prechody pre rovnaky symbol")
             ]
         , div [ class "mt-4 rounded-3xl border border-[#45352b] bg-[#120f0d]/80 p-4" ]
@@ -1684,10 +1675,10 @@ viewInfoBanner : String -> Html Msg
 viewInfoBanner messageText =
     let
         toneClasses =
-            if String.startsWith "✗" messageText then
+            if String.startsWith "âś—" messageText then
                 "border-rose-500/30 bg-rose-500/10 text-rose-100"
 
-            else if String.startsWith "✓" messageText then
+            else if String.startsWith "âś“" messageText then
                 "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
 
             else
@@ -1698,7 +1689,7 @@ viewInfoBanner messageText =
             [ div [ class "mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-black/10" ]
                 [ i [ class "fas fa-circle-info" ] [] ]
             , div []
-                [ div [ class "font-semibold" ] [ text "Stav aplikácie" ]
+                [ div [ class "font-semibold" ] [ text "Stav aplikĂˇcie" ]
                 , p [ class "mt-1 text-sm leading-6" ] [ text messageText ]
                 ]
             ]
