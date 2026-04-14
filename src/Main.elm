@@ -83,6 +83,7 @@ type alias Model =
     , inputWord : String
     , simulation : Simulation
     , playbackSpeed : PlaybackSpeed
+    , guideOpen : Bool
     , msgInfo : String
     , fromSel : String
     , symSel : String
@@ -113,11 +114,6 @@ type AlgorithmsSubTab
     = AlgoBasicSub
     | AlgoProductSub
     | AlgoDataSub
-
-
-simulationStepMs : Float
-simulationStepMs =
-    650
 
 
 playbackStepMs : PlaybackSpeed -> Float
@@ -420,6 +416,7 @@ init =
     , inputWord = ""
     , simulation = resetSimulation initialAutomaton ""
     , playbackSpeed = Normal
+    , guideOpen = False
     , msgInfo = "Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova."
     , fromSel = "0"
     , symSel = ""
@@ -445,6 +442,8 @@ type Msg
     | ToggleSimulationPlayback
     | SetPlaybackSpeed String
     | SimulationTick Float
+    | ToggleGuide
+    | CloseGuide
     | FromChanged String
     | SymChanged String
     | ToChanged String
@@ -480,6 +479,12 @@ update msg model =
 
         SelectAlgorithmsSubTab subTab ->
             { model | algorithmsSubTab = subTab }
+
+        ToggleGuide ->
+            { model | guideOpen = not model.guideOpen }
+
+        CloseGuide ->
+            { model | guideOpen = False }
 
         Editor eMsg ->
             let
@@ -930,6 +935,11 @@ view model =
             [ viewSidebar model
             , viewMain model
             ]
+        , if model.guideOpen then
+            viewGuideOverlay
+
+          else
+            text ""
         ]
 
 
@@ -951,7 +961,7 @@ viewSidebar model =
                             [ i [ class "fas fa-star" ] []
                             , text "Elm DFA Studio"
                             ]
-                        , h1 [ class "mt-4 text-3xl font-black tracking-tight text-white" ]
+                        , h1 [ class "mt-4 text-3xl font-black tracking-tight text-[#f5ede3]" ]
                             [ text "Simulator DFA" ]
                         ]
                     , div [ class "flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300 shadow-lg shadow-amber-500/10" ]
@@ -989,7 +999,7 @@ viewMiniMetric : String -> String -> Html Msg
 viewMiniMetric labelText valueText =
     div [ class "rounded-2xl border border-[#4a392f] bg-[#261e1a]/90 p-3" ]
         [ div [ class "text-[11px] uppercase tracking-[0.16em] text-[#bca48d]" ] [ text labelText ]
-        , div [ class "mt-2 text-lg font-bold text-white" ] [ text valueText ]
+        , div [ class "mt-2 text-lg font-bold text-[#f5ede3]" ] [ text valueText ]
         ]
 
 
@@ -1006,7 +1016,7 @@ viewTabButton tab icon labelText currentTab =
                         "bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] shadow-lg shadow-amber-900/30"
 
                     else
-                        "text-[#d8c1aa] hover:bg-[#2b211b] hover:text-white"
+                        "text-[#d8c1aa] hover:bg-[#2b211b] hover:text-[#f3e4d2]"
                    )
         , onClick (SelectTab tab)
         ]
@@ -1021,10 +1031,10 @@ viewInnerTabButton isActive icon labelText buttonMsg =
         [ class <|
             "flex-1 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 "
                 ++ (if isActive then
-                        "bg-[#c26a2d] text-white shadow-lg shadow-amber-900/30"
+                        "bg-[#c26a2d] text-[#f7ead9] shadow-lg shadow-amber-900/30"
 
                     else
-                        "text-[#d8c1aa] hover:bg-[#2b211b] hover:text-white"
+                        "text-[#d8c1aa] hover:bg-[#2b211b] hover:text-[#f3e4d2]"
                    )
         , onClick buttonMsg
         ]
@@ -1071,7 +1081,7 @@ viewEditorPanel model automaton =
                         , viewInputField "Symbol" model.symSel "napr. 0, a, x" SymChanged
                         , viewSelectField "Do (To)" model.toSel automaton.states ToChanged
                         , button
-                            [ class "w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                            [ class "w-full rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
                             , onClick AddTransitionClicked
                             ]
                             [ i [ class "fas fa-plus mr-2" ] []
@@ -1098,7 +1108,7 @@ viewSectionCard : String -> String -> List (Html Msg) -> Html Msg
 viewSectionCard titleText subtitleText contentNodes =
     div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10" ]
         ([ div [ class "mb-4" ]
-            [ h3 [ class "text-base font-bold text-white" ] [ text titleText ]
+            [ h3 [ class "text-base font-bold text-[#f5ede3]" ] [ text titleText ]
             , p [ class "mt-1 text-sm leading-6 text-[#bca48d]" ] [ text subtitleText ]
             ]
          ]
@@ -1111,7 +1121,7 @@ viewSelectField labelText selectedValue states toMsg =
     div []
         [ label [ class "mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#bca48d]" ] [ text labelText ]
         , select
-            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400"
+            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition focus:border-amber-400"
             , value selectedValue
             , onInput toMsg
             ]
@@ -1129,7 +1139,7 @@ viewInputField labelText currentValue placeholderText toMsg =
     div []
         [ label [ class "mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[#bca48d]" ] [ text labelText ]
         , input
-            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
+            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
             , value currentValue
             , onInput toMsg
             , placeholder placeholderText
@@ -1153,16 +1163,16 @@ viewStateCard automaton stateId =
                 [ div [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 to-[#c26a2d]/20 text-base font-black text-amber-100 ring-1 ring-amber-500/20" ]
                     [ text ("q" ++ String.fromInt stateId) ]
                 , div []
-                    [ div [ class "font-semibold text-white" ] [ text ("Stav " ++ String.fromInt stateId) ]
+                    [ div [ class "font-semibold text-[#f5ede3]" ] [ text ("Stav " ++ String.fromInt stateId) ]
                     , div [ class "mt-1 flex flex-wrap gap-2" ]
                         ((if isStart then
-                            [ span [ class "rounded-full bg-blue-500/15 px-2.5 py-1 text-[11px] font-semibold text-blue-200" ] [ text "Start" ] ]
+                            [ span [ class "rounded-full border border-[#c78a4a]/25 bg-[#6a4328]/35 px-2.5 py-1 text-[11px] font-semibold text-[#f1d2aa]" ] [ text "Start" ] ]
 
                           else
                             []
                          )
                             ++ (if isAccepting then
-                                    [ span [ class "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200" ] [ text "Akceptacny" ] ]
+                                    [ span [ class "rounded-full border border-[#a86b3b]/25 bg-[#4d3020]/45 px-2.5 py-1 text-[11px] font-semibold text-[#e6c3a2]" ] [ text "Akceptacny" ] ]
 
                                 else
                                     []
@@ -1172,17 +1182,17 @@ viewStateCard automaton stateId =
                 ]
             , div [ class "flex items-center gap-2" ]
                 [ viewIconButton
-                    (if isAccepting then "bg-emerald-500 text-white" else "bg-[#2a201a] text-[#c9b29a] hover:bg-emerald-500 hover:text-white")
+                    (if isAccepting then "bg-[#a86434] text-[#f7ead9]" else "bg-[#2a201a] text-[#c9b29a] hover:bg-[#8f5a31] hover:text-[#f7ead9]")
                     "fas fa-check"
                     "Akceptacny stav"
                     (Editor (Ed.ToggleAccepting stateId))
                 , viewIconButton
-                    (if isStart then "bg-amber-400 text-slate-950" else "bg-[#2a201a] text-[#c9b29a] hover:bg-amber-400 hover:text-slate-950")
+                    (if isStart then "bg-[#d59652] text-[#1b120e]" else "bg-[#2a201a] text-[#c9b29a] hover:bg-[#d59652] hover:text-[#1b120e]")
                     "fas fa-star"
                     "Startovaci stav"
                     (Editor (Ed.SetStart (Just stateId)))
                 , viewIconButton
-                    "bg-[#2a201a] text-[#c9b29a] hover:bg-rose-500 hover:text-white"
+                    "bg-[#2a201a] text-[#c9b29a] hover:bg-[#76472c] hover:text-[#f7ead9]"
                     "fas fa-trash"
                     "Odstranit stav"
                     (Editor (Ed.RemoveState stateId))
@@ -1206,13 +1216,13 @@ viewTransitionItem idx transition =
     div [ class "group flex items-center justify-between gap-3 rounded-2xl border border-[#45352b] bg-[#120f0d]/80 px-3 py-3" ]
         [ div [ class "flex items-center gap-2 text-sm text-[#f2e6d7]" ]
             [ span [ class "font-semibold" ] [ text ("q" ++ String.fromInt transition.from) ]
-            , i [ class "fas fa-arrow-right text-xs text-slate-500" ] []
+            , i [ class "fas fa-arrow-right text-xs text-[#8d705d]" ] []
             , span [ class "rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-100" ] [ text transition.symbol ]
-            , i [ class "fas fa-arrow-right text-xs text-slate-500" ] []
+            , i [ class "fas fa-arrow-right text-xs text-[#8d705d]" ] []
             , span [ class "font-semibold" ] [ text ("q" ++ String.fromInt transition.to_) ]
             ]
         , button
-            [ class "flex h-8 w-8 items-center justify-center rounded-xl bg-[#2a201a] text-[#c9b29a] transition hover:bg-rose-500 hover:text-white"
+            [ class "flex h-8 w-8 items-center justify-center rounded-xl bg-[#2a201a] text-[#c9b29a] transition hover:bg-[#76472c] hover:text-[#f7ead9]"
             , onClick (Editor (Ed.RemoveTransition idx))
             , title "Odstranit prechod"
             ]
@@ -1245,7 +1255,7 @@ viewAlgorithmsPanel model =
                     "Mnozinove operacie"
                     "Vloz druhy automat v JSON a vytvor zjednotenie alebo prienik."
                     [ textarea
-                        [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-slate-200 outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
+                        [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-[#e6d2be] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                         , rows 8
                         , placeholder "{\"states\":[0,1],\"alphabet\":[\"0\",\"1\"],...}"
                         , value model.otherText
@@ -1270,7 +1280,7 @@ viewAlgorithmsPanel model =
                         , text "Stiahnut JSON subor"
                         ]
                     , button
-                        [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-400 hover:text-white"
+                        [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                         , onClick ExportJson
                         ]
                         [ i [ class "fas fa-code mr-2" ] []
@@ -1278,14 +1288,14 @@ viewAlgorithmsPanel model =
                         ]
                     , div [ class "mt-3 grid grid-cols-2 gap-3" ]
                         [ button
-                            [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-400 hover:text-white"
+                            [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                             , onClick ExportGraphSvg
                             ]
                             [ i [ class "fas fa-vector-square mr-2" ] []
                             , text "Export SVG"
                             ]
                         , button
-                            [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-400 hover:text-white"
+                            [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                             , onClick ExportGraphPng
                             ]
                             [ i [ class "fas fa-image mr-2" ] []
@@ -1297,7 +1307,7 @@ viewAlgorithmsPanel model =
 
                       else
                         textarea
-                            [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-xs text-slate-200 outline-none"
+                            [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-xs text-[#e6d2be] outline-none"
                             , rows 8
                             , readonly True
                             , value model.exportText
@@ -1305,7 +1315,7 @@ viewAlgorithmsPanel model =
                             []
                     , div [ class "mt-3" ]
                         [ textarea
-                            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-slate-200 outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
+                            [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-[#e6d2be] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                             , rows 8
                             , placeholder "Vloz JSON pre import..."
                             , value model.importText
@@ -1313,14 +1323,14 @@ viewAlgorithmsPanel model =
                             ]
                             []
                         , button
-                            [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-amber-400 hover:text-white"
+                            [ class "mt-3 w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                             , onClick PickJsonFile
                             ]
                             [ i [ class "fas fa-folder-open mr-2" ] []
                             , text "Vybrat JSON subor"
                             ]
                         , button
-                            [ class "mt-3 w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                            [ class "mt-3 w-full rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
                             , onClick ImportJson
                             ]
                             [ i [ class "fas fa-upload mr-2" ] []
@@ -1341,10 +1351,10 @@ viewAlgorithmButton icon titleText descriptionText buttonMsg =
             [ div [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-200 ring-1 ring-amber-500/20" ]
                 [ i [ class (icon ++ " text-lg") ] [] ]
             , div [ class "flex-1" ]
-                [ div [ class "font-semibold text-white" ] [ text titleText ]
-                , div [ class "mt-1 text-sm leading-6 text-slate-400" ] [ text descriptionText ]
+                [ div [ class "font-semibold text-[#f5ede3]" ] [ text titleText ]
+                , div [ class "mt-1 text-sm leading-6 text-[#bca48d]" ] [ text descriptionText ]
                 ]
-            , i [ class "fas fa-chevron-right mt-1 text-slate-600" ] []
+            , i [ class "fas fa-chevron-right mt-1 text-[#7f6756]" ] []
             ]
         ]
 
@@ -1353,19 +1363,19 @@ simulationBadgeClass : SimulationStatus -> String
 simulationBadgeClass status =
     case status of
         SimAccepted ->
-            "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+            "border-[#c48a4a]/30 bg-[#8c5d33]/20 text-[#f0d4ae]"
 
         SimRejected ->
-            "border-rose-400/30 bg-rose-500/15 text-rose-200"
+            "border-[#8a5938]/35 bg-[#5a3825]/25 text-[#d9baa0]"
 
         SimStuck ->
-            "border-amber-400/30 bg-amber-500/15 text-amber-200"
+            "border-[#b97a3c]/30 bg-[#7b4f2c]/22 text-[#edc89b]"
 
         SimRunning ->
-            "border-amber-400/30 bg-amber-500/15 text-amber-100"
+            "border-[#d39a57]/30 bg-[#9a6534]/20 text-[#f3dfc2]"
 
         SimReady ->
-            "border-slate-600 bg-slate-800 text-slate-200"
+            "border-[#5b473b] bg-[#2a201a] text-[#d8c1aa]"
 
 
 simulationBadgeText : SimulationStatus -> String
@@ -1407,7 +1417,7 @@ viewTapeCell activeIndex cellIndex symbol =
                         "bg-amber-300 text-[#1b120e] shadow-[0_0_24px_rgba(245,158,11,0.24)]"
 
                     else
-                        "bg-[#1a1411] text-slate-100"
+                        "bg-[#1a1411] text-[#eadbcf]"
                    )
         ]
         [ text displaySymbol ]
@@ -1437,7 +1447,7 @@ viewSimulationPanel model =
             [ input
                 [ type_ "text"
                 , placeholder "napr. 010110 alebo abba"
-                , class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
+                , class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                 , value model.inputWord
                 , onInput WordChanged
                 ]
@@ -1455,17 +1465,17 @@ viewSimulationPanel model =
             , div [ class "mt-4 grid grid-cols-2 gap-3 text-sm" ]
                 [ div [ class "rounded-2xl border border-[#5a4638] bg-[#1e1713] px-4 py-3 text-[#e7d3bf]" ]
                     [ div [ class "text-[11px] uppercase tracking-[0.16em] text-[#bca48d]" ] [ text "Aktualny stav" ]
-                    , div [ class "mt-2 text-lg font-bold text-white" ] [ text currentStateLabel ]
+                    , div [ class "mt-2 text-lg font-bold text-[#f5ede3]" ] [ text currentStateLabel ]
                     ]
                 , div [ class "rounded-2xl border border-[#5a4638] bg-[#1e1713] px-4 py-3 text-[#e7d3bf]" ]
                     [ div [ class "text-[11px] uppercase tracking-[0.16em] text-[#bca48d]" ] [ text "Aktualny symbol" ]
-                    , div [ class "mt-2 text-lg font-bold text-white" ] [ text (Maybe.withDefault "_" (currentTapeSymbol simulation)) ]
+                    , div [ class "mt-2 text-lg font-bold text-[#f5ede3]" ] [ text (Maybe.withDefault "_" (currentTapeSymbol simulation)) ]
                     ]
                 ]
             , p [ class "mt-3 text-sm text-[#c9b29a]" ] [ text (simulationStatusText simulation) ]
             , div [ class "mt-4 rounded-2xl border border-[#5a4638] bg-[#1e1713] px-4 py-4" ]
                 [ div [ class "flex items-center justify-between gap-3" ]
-                    [ div [ class "text-sm font-semibold text-white" ] [ text "Rychlost prehravania" ]
+                    [ div [ class "text-sm font-semibold text-[#f5ede3]" ] [ text "Rychlost prehravania" ]
                     , div [ class "rounded-full border border-[#7a5a40] bg-[#2a201a] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#f1dfbf]" ] [ text (playbackSpeedLabel model.playbackSpeed) ]
                     ]
                 , input
@@ -1493,7 +1503,7 @@ viewSimulationPanel model =
                     , text "Reset"
                     ]
                 , button
-                    [ class "rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
+                    [ class "rounded-2xl bg-[#d59652] px-4 py-3 text-sm font-semibold text-[#1b120e] transition hover:bg-[#e0a866]"
                     , onClick StepSimulation
                     , disabled (simulationFinished simulation)
                     ]
@@ -1501,14 +1511,14 @@ viewSimulationPanel model =
                     , text "Krok"
                     ]
                 , button
-                    [ class "rounded-2xl bg-[#c26a2d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#d78649]"
+                    [ class "rounded-2xl bg-[#8f5a31] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#a56c3f]"
                     , onClick ToggleSimulationPlayback
                     ]
                     [ i [ class ((if simulation.autoplay then "fas fa-pause" else "fas fa-play") ++ " mr-2") ] []
                     , text (if simulation.autoplay then "Pauza" else "Auto")
                     ]
                 , button
-                    [ class "rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                    [ class "rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
                     , onClick CheckWord
                     ]
                     [ i [ class "fas fa-bolt mr-2" ] []
@@ -1519,7 +1529,7 @@ viewSimulationPanel model =
         , viewSectionCard
             "Co uvidis v grafe"
             "Simulacny rezim priamo prepoji pasku s automatovou vizualizaciou."
-            [ ul [ class "space-y-3 text-sm leading-6 text-slate-300" ]
+            [ ul [ class "space-y-3 text-sm leading-6 text-[#d8c1aa]" ]
                 [ li [] [ text "Zlty ring oznacuje aktualny stav, v ktorom sa automat prave nachadza." ]
                 , li [] [ text "Oranzovo sa zvyrazni posledny pouzity prechod aj jeho label." ]
                 , li [] [ text "Pri zaseknuti ostane zvyrazneny stav a na paske uvidis symbol, na ktorom chybala hrana." ]
@@ -1530,7 +1540,7 @@ viewSimulationPanel model =
 
 viewEmptyPanel : String -> Html Msg
 viewEmptyPanel messageText =
-    div [ class "rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 px-4 py-6 text-center text-sm text-slate-400" ]
+    div [ class "rounded-2xl border border-dashed border-[#5a4638] bg-[#15110f]/80 px-4 py-6 text-center text-sm text-[#bca48d]" ]
         [ text messageText ]
 
 
@@ -1546,10 +1556,11 @@ viewMain model =
                 [ div [ class "rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-5 shadow-2xl shadow-black/20" ]
                     [ div [ class "mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" ]
                         [ div []
-                            [ h3 [ class "text-xl font-bold text-white" ] [ text "Platno automatu" ]
+                            [ h3 [ class "text-xl font-bold text-[#f5ede3]" ] [ text "Platno automatu" ]
                             ]
                         , div [ class "flex flex-wrap gap-3" ]
-                            [ viewToolbarButton "fas fa-undo" "Undo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Undo
+                            [ viewToolbarButton "fas fa-book-open" "Guide" "bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] hover:brightness-110" ToggleGuide
+                            , viewToolbarButton "fas fa-undo" "Undo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Undo
                             , viewToolbarButton "fas fa-redo" "Redo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Redo
                             ]
                         ]
@@ -1558,8 +1569,8 @@ viewMain model =
                             [ div [ class "max-w-md px-6" ]
                                 [ div [ class "mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20" ]
                                     [ i [ class "fas fa-project-diagram text-2xl" ] [] ]
-                                , h4 [ class "mt-5 text-2xl font-bold text-white" ] [ text "Platno je pripravene" ]
-                                , p [ class "mt-3 text-sm leading-7 text-slate-400" ] [ text "Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy." ]
+                                , h4 [ class "mt-5 text-2xl font-bold text-[#f5ede3]" ] [ text "Platno je pripravene" ]
+                                , p [ class "mt-3 text-sm leading-7 text-[#bca48d]" ] [ text "Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy." ]
                                 ]
                             ]
 
@@ -1584,13 +1595,121 @@ viewToolbarButton icon labelText extra buttonMsg =
         ]
 
 
+viewGuideOverlay : Html Msg
+viewGuideOverlay =
+    div [ class "fixed inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-sm" ]
+        [ div [ class "flex h-full w-full max-w-[620px] flex-col border-l border-[#4b392d] bg-[#140f0d] shadow-2xl shadow-black/50" ]
+            [ div [ class "flex items-start justify-between gap-4 border-b border-[#3a2c23] px-6 py-5" ]
+                [ div []
+                    [ div [ class "inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300" ]
+                        [ i [ class "fas fa-book-open" ] []
+                        , text "Guide"
+                        ]
+                    , h2 [ class "mt-4 text-2xl font-black text-[#f5ede3]" ] [ text "Navod k aplikacii" ]
+                    , p [ class "mt-2 max-w-xl text-sm leading-6 text-[#c9b29a]" ]
+                        [ text "Toto okno popisuje, co v editore funguje, ako sa sprava simulacia, co ocakavaju algoritmy a aky JSON format vie aplikacia nacitat." ]
+                    ]
+                , button
+                    [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2a201a] text-[#d8c1aa] transition hover:bg-[#76472c] hover:text-[#f7ead9]"
+                    , onClick CloseGuide
+                    , title "Zavriet guide"
+                    ]
+                    [ i [ class "fas fa-times" ] [] ]
+                ]
+            , div [ class "flex-1 space-y-4 overflow-y-auto px-6 py-6 scrollbar-thin" ]
+                [ viewGuideSection
+                    "1. Co je to za appku"
+                    [ "Aplikacia sluzi na tvorbu a upravu konecnych automatov, ich vizualizaciu v grafe a spustanie zakladnych algoritmov nad automatmi."
+                    , "Automat tvoria stavy, prechody, startovaci stav, akceptacne stavy a pozicie uzlov na platne."
+                    , "Kazda zmena v editore sa uklada do historie, preto mozes pouzivat Undo a Redo."
+                    ]
+                , viewGuideSection
+                    "2. Editor"
+                    [ "V zalozke Editor vies pridavat stavy, mazat ich, oznacovat akceptacne stavy a nastavit start."
+                    , "Prechody sa vytvaraju vyberom stavu From, symbolu a cieloveho stavu To."
+                    , "Pri zmazani stavu sa odstrania aj prechody, ktore do neho viedli alebo z neho vychadzali."
+                    , "Stavy mozes presuvat mysou priamo na platne. Po pusteni sa nova pozicia ulozi do historie."
+                    ]
+                , viewGuideSection
+                    "3. DFA vs NFA"
+                    [ "Aplikacia povazuje automat za deterministicky, ak z jedneho stavu nevedu pre rovnaky symbol dve hrany do roznych cielov."
+                    , "Ak sa take duplicity objavia, v spodnych statistikach uvidis upozornenie a automat je brany ako NFA."
+                    , "NFA moze mat viac prechodov na ten isty symbol. Simulacia po krokoch a niektore algoritmy su ale dostupne iba pre DFA."
+                    ]
+                , viewGuideSection
+                    "4. Simulacia slova"
+                    [ "Zalozka Simulacia cita vstup po jednom symbole zlava doprava."
+                    , "Tlacidlo Krok vykona presne jeden prechod. Tlacidlo Auto spusti prehravanie s nastavitelou rychlostou."
+                    , "Vyhodnot hned pusti simulaciu az do konca bez krokovania."
+                    , "Simulacia momentalne funguje iba pre DFA. Ak je automat NFA, appka ta najprv vyzve na prevod NFA -> DFA."
+                    , "Ak pre aktualny stav a symbol neexistuje prechod, automat sa zasekne."
+                    ]
+                , viewGuideSection
+                    "5. Algoritmy"
+                    [ "NFA -> DFA robi subset construction. Aktualna implementacia nepodporuje epsilon prechody."
+                    , "Minimalizacia je urcena pre DFA. Najprv odstrani nedosiahnutelne stavy, potom automat totalizuje a az potom robi partition refinement."
+                    , "Komplement je urceny pre DFA. Chybajuce prechody sa predtym doplnia do sink stavu."
+                    , "Zjednotenie a prienik pracuju nad dvoma DFA cez produktovu konstrukciu. Druhy automat treba vlozit ako JSON."
+                    ]
+                , viewGuideSection
+                    "6. Graf a vizualizacia"
+                    [ "Startovaci stav ma zvlastne oznacenie sipkou zlava."
+                    , "Akceptacny stav ma dvojitu kruznicu."
+                    , "Pri simulacii sa zvyrazni aktualny stav a posledny pouzity prechod."
+                    , "Ak medzi dvoma stavmi existuje viac symbolov v tom istom smere, graf ich zoskupi do jedneho labelu."
+                    ]
+                , viewGuideSection
+                    "7. Import a export"
+                    [ "Automat vies exportovat ako JSON do textu v appke alebo do suboru."
+                    , "Graf vies stiahnut aj ako SVG alebo PNG."
+                    , "Import funguje bud vlozenim JSON textu, alebo vyberom JSON suboru z disku."
+                    , "Ak importovany automat nema ulozene positions, appka stavy automaticky rozlozi na kruznicu."
+                    ]
+                , viewGuideSection
+                    "8. Ako funguje abeceda"
+                    [ "Abeceda sa v appke priebezne doplna podla symbolov, ktore realne pouzijes v prechodoch."
+                    , "To znamena, ze ked vytvoris prechod s novym symbolom, aplikacia ho zaradi do alphabet automaticky."
+                    , "Pri mnozinovych operaciach sa pracuje s efektivnou abecedou oboch automatov dokopy."
+                    ]
+                , viewGuideCodeBlock
+                    "9. JSON format"
+                    "{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}"
+                , viewGuideSection
+                    "10. Limity aktualnej verzie"
+                    [ "Simulacia slova, minimalizacia, komplement, zjednotenie a prienik ocakavaju DFA."
+                    , "Prevod NFA -> DFA nepodporuje epsilon prechody."
+                    , "Stavy sa identifikuju cislami a pri pridavani noveho stavu sa pouzije dalsie volne ID za aktualnym maximom."
+                    ]
+                ]
+            ]
+        ]
+
+
+viewGuideSection : String -> List String -> Html Msg
+viewGuideSection titleText items =
+    div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10" ]
+        [ h3 [ class "text-base font-bold text-[#f5ede3]" ] [ text titleText ]
+        , div [ class "mt-3 space-y-3 text-sm leading-6 text-[#d8c1aa]" ]
+            (List.map (\item -> p [ class "rounded-2xl border border-[#3a2c23] bg-[#120f0d]/75 px-4 py-3" ] [ text item ]) items)
+        ]
+
+
+viewGuideCodeBlock : String -> String -> Html Msg
+viewGuideCodeBlock titleText codeText =
+    div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10" ]
+        [ h3 [ class "text-base font-bold text-[#f5ede3]" ] [ text titleText ]
+        , pre [ class "mt-3 overflow-x-auto rounded-2xl border border-[#3a2c23] bg-[#120f0d]/90 p-4 text-xs leading-6 text-[#f3e4d2]" ]
+            [ code [] [ text codeText ] ]
+        ]
+
+
 viewTopStat : String -> String -> String -> String -> Html Msg
 viewTopStat labelText valueText icon subtitleText =
     div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4" ]
         [ div [ class "flex items-start justify-between gap-4" ]
             [ div []
                 [ div [ class "text-xs font-semibold uppercase tracking-[0.16em] text-[#bca48d]" ] [ text labelText ]
-                , div [ class "mt-3 text-3xl font-black text-white" ] [ text valueText ]
+                , div [ class "mt-3 text-3xl font-black text-[#f5ede3]" ] [ text valueText ]
                 , div [ class "mt-2 text-sm leading-6 text-[#bca48d]" ] [ text subtitleText ]
                 ]
             , div [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-200 ring-1 ring-amber-500/20" ]
@@ -1620,8 +1739,8 @@ viewBottomStats automaton =
     in
     div [ class "mt-6 rounded-[32px] border border-[#45352b] bg-[#1a1411]/88 p-5 shadow-2xl shadow-black/10" ]
         [ div [ class "mb-4" ]
-            [ h3 [ class "text-xl font-bold text-white" ] [ text "Statisticke udaje" ]
-            , p [ class "mt-1 text-sm leading-6 text-slate-400" ] [ text "Prehlad aktualneho automatu presunuty pod platno." ]
+            [ h3 [ class "text-xl font-bold text-[#f5ede3]" ] [ text "Statisticke udaje" ]
+            , p [ class "mt-1 text-sm leading-6 text-[#bca48d]" ] [ text "Prehlad aktualneho automatu presunuty pod platno." ]
             ]
         , div [ class "grid gap-4 xl:grid-cols-5" ]
             [ viewTopStat "Pocet stavov" (String.fromInt (List.length automaton.states)) "fas fa-circle" "Zakladne uzly automatu"
@@ -1632,21 +1751,21 @@ viewBottomStats automaton =
             ]
         , div [ class "mt-4 rounded-3xl border border-[#45352b] bg-[#120f0d]/80 p-4" ]
             [ div [ class "flex items-center justify-between gap-3" ]
-                [ div [ class "text-sm font-semibold text-white" ] [ text "Kontrola deterministickosti" ]
+                [ div [ class "text-sm font-semibold text-[#f5ede3]" ] [ text "Kontrola deterministickosti" ]
                 , span
                     [ class <|
                         "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] "
                             ++ (if deterministic then
-                                    "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+                                    "border-[#c48a4a]/30 bg-[#8c5d33]/20 text-[#f0d4ae]"
 
                                 else
-                                    "border-amber-400/30 bg-amber-500/15 text-amber-200"
+                                    "border-[#8a5938]/35 bg-[#5a3825]/25 text-[#d9baa0]"
                                )
                     ]
                     [ text (if deterministic then "Deterministicky" else "Nedeterministicky") ]
                 ]
             , if deterministic then
-                p [ class "mt-3 text-sm leading-6 text-slate-400" ] [ text "Automat nema ziadny stav, z ktoreho by viedlo viac prechodov na rovnaky symbol." ]
+                p [ class "mt-3 text-sm leading-6 text-[#bca48d]" ] [ text "Automat nema ziadny stav, z ktoreho by viedlo viac prechodov na rovnaky symbol." ]
 
               else
                 div [ class "mt-3 space-y-2" ]
@@ -1665,31 +1784,6 @@ viewBottomStats automaton =
                                     ]
                             )
                     )
-            ]
-        ]
-
-
-viewInfoBanner : String -> Html Msg
-viewInfoBanner messageText =
-    let
-        toneClasses =
-            if String.startsWith "ERROR:" messageText then
-                "border-rose-500/30 bg-rose-500/10 text-rose-100"
-
-            else if String.startsWith "OK:" messageText then
-                "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-
-            else
-                "border-cyan-500/30 bg-cyan-500/10 text-cyan-100"
-    in
-    div [ class ("mt-6 rounded-3xl border px-5 py-4 shadow-lg shadow-black/5 " ++ toneClasses) ]
-        [ div [ class "flex items-start gap-3" ]
-            [ div [ class "mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-black/10" ]
-                [ i [ class "fas fa-circle-info" ] [] ]
-            , div []
-                [ div [ class "font-semibold" ] [ text "Stav aplikacie" ]
-                , p [ class "mt-1 text-sm leading-6" ] [ text messageText ]
-                ]
             ]
         ]
 

@@ -96,21 +96,21 @@ view highlight a =
 
                 badgeFill =
                     if isActive then
-                        "rgba(254,240,138,0.98)"
+                        "rgba(232,194,150,0.98)"
 
                     else
-                        "rgba(255,248,240,0.96)"
+                        "rgba(241,223,202,0.96)"
 
                 badgeStroke =
                     if isActive then
-                        "#f59e0b"
+                        "#c78a4a"
 
                     else
                         "#705948"
 
                 badgeText =
                     if isActive then
-                        "#713f12"
+                        "#5b351d"
 
                     else
                         "#4a3426"
@@ -226,8 +226,8 @@ view highlight a =
                             [ SA.cx xStr
                             , SA.cy yStr
                             , SA.r "43"
-                            , SA.fill "rgba(250,204,21,0.10)"
-                            , SA.stroke "rgba(245,158,11,0.60)"
+                            , SA.fill "rgba(199,138,74,0.12)"
+                            , SA.stroke "rgba(199,138,74,0.58)"
                             , SA.strokeWidth "3"
                             , SA.strokeDasharray "7 6"
                             ]
@@ -264,7 +264,7 @@ view highlight a =
                             [ SA.cx xStr
                             , SA.cy yStr
                             , SA.r "29"
-                            , SA.fill "#fff8f0"
+                            , SA.fill "#f1dfcf"
                             , SA.stroke strokeColor
                             , SA.strokeWidth "3"
                             ]
@@ -340,6 +340,9 @@ view highlight a =
                     if isActiveEdge then
                         "#f59e0b"
 
+                    else if isBidirectional && idx1 < idx2 then
+                        "#3b82f6"
+
                     else if isBidirectional && idx1 > idx2 then
                         "#ef4444"
 
@@ -349,6 +352,9 @@ view highlight a =
                 edgeMarker =
                     if isActiveEdge then
                         "url(#arrowhead-active)"
+
+                    else if isBidirectional && idx1 < idx2 then
+                        "url(#arrowhead-blue)"
 
                     else if isBidirectional && idx1 > idx2 then
                         "url(#arrowhead-red)"
@@ -548,6 +554,21 @@ view highlight a =
                 [ path
                     [ SA.d "M0,0 L0,8 L10,4 z"
                     , SA.fill "#c08457"
+                    ]
+                    []
+                ]
+            , marker
+                [ SA.id "arrowhead-blue"
+                , SA.markerWidth "12"
+                , SA.markerHeight "12"
+                , SA.refX "10"
+                , SA.refY "4"
+                , SA.orient "auto"
+                , SA.markerUnits "strokeWidth"
+                ]
+                [ path
+                    [ SA.d "M0,0 L0,8 L10,4 z"
+                    , SA.fill "#3b82f6"
                     ]
                     []
                 ]

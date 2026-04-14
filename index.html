@@ -11,15 +11,10 @@
             theme: {
                 extend: {
                     colors: {
-                        slate: tailwind.colors.slate,
-                        cyan: tailwind.colors.cyan,
-                        blue: tailwind.colors.blue,
-                        emerald: tailwind.colors.emerald,
-                        rose: tailwind.colors.rose,
                         amber: tailwind.colors.amber
                     },
                     boxShadow: {
-                        glow: '0 18px 60px rgba(34, 211, 238, 0.16)'
+                        glow: '0 18px 60px rgba(180, 83, 9, 0.18)'
                     }
                 }
             }
@@ -195,7 +190,7 @@
                 canvas.height = height;
 
                 const context = canvas.getContext('2d');
-                context.fillStyle = '#ffffff';
+                context.fillStyle = '#140f0d';
                 context.fillRect(0, 0, width, height);
                 context.drawImage(image, 0, 0, width, height);
 

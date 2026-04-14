@@ -42,7 +42,6 @@ jobs:
           mkdir dist
           cp index.html dist/index.html
           cp elm.js dist/elm.js
-          if [ -f style.css ]; then cp style.css dist/style.css; fi
           touch dist/.nojekyll
 
       - name: Upload Pages artifact
