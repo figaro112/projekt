@@ -84,6 +84,8 @@ type alias Model =
     , simulation : Simulation
     , playbackSpeed : PlaybackSpeed
     , guideOpen : Bool
+    , guideTab : GuideTab
+    , jsonFileTarget : JsonFileTarget
     , msgInfo : String
     , fromSel : String
     , symSel : String
@@ -114,6 +116,20 @@ type AlgorithmsSubTab
     = AlgoBasicSub
     | AlgoProductSub
     | AlgoDataSub
+
+
+type GuideTab
+    = GuideEditorTab
+    | GuideSimulationTab
+    | GuideConversionTab
+    | GuideDataTab
+    | GuideErrorsTab
+    | GuideProjectTab
+
+
+type JsonFileTarget
+    = MainImportFile
+    | OtherAutomatonFile
 
 
 playbackStepMs : PlaybackSpeed -> Float
@@ -324,6 +340,37 @@ dfaOnlyMessage actionLabel =
     actionLabel ++ " je dostupne iba pre DFA. Najprv pouzi NFA -> DFA."
 
 
+invalidAutomatonMessage : String -> List V.Error -> String
+invalidAutomatonMessage actionLabel errs =
+    actionLabel ++ " nie je mozne spustit: " ++ renderErrors errs
+
+
+stopAutoplay : Model -> Model
+stopAutoplay model =
+    let
+        currentSimulation =
+            model.simulation
+    in
+    { model | simulation = { currentSimulation | autoplay = False } }
+
+
+guardValid : String -> A.Automaton -> Model -> Maybe Model
+guardValid actionLabel automaton model =
+    let
+        errs =
+            V.validate automaton
+
+        stoppedModel =
+            stopAutoplay model
+    in
+    if List.isEmpty errs then
+        Nothing
+
+    else
+        Just
+            { stoppedModel | msgInfo = invalidAutomatonMessage actionLabel errs }
+
+
 guardDeterministic : String -> A.Automaton -> Model -> Maybe Model
 guardDeterministic actionLabel automaton model =
     if V.isDeterministic automaton then
@@ -331,17 +378,21 @@ guardDeterministic actionLabel automaton model =
 
     else
         let
-            currentSimulation =
-                model.simulation
-
-            stoppedSimulation =
-                { currentSimulation | autoplay = False }
+            stoppedModel =
+                stopAutoplay model
         in
         Just
-            { model
-                | simulation = stoppedSimulation
-                , msgInfo = dfaOnlyMessage actionLabel
-            }
+            { stoppedModel | msgInfo = dfaOnlyMessage actionLabel }
+
+
+guardValidDeterministic : String -> A.Automaton -> Model -> Maybe Model
+guardValidDeterministic actionLabel automaton model =
+    case guardValid actionLabel automaton model of
+        Just invalidModel ->
+            Just invalidModel
+
+        Nothing ->
+            guardDeterministic actionLabel automaton model
 
 
 showSimulationOverlay : Model -> Bool
@@ -406,6 +457,131 @@ parsePlaybackSpeed rawValue =
             Normal
 
 
+guideTabForAppTab : Tab -> GuideTab
+guideTabForAppTab tab =
+    case tab of
+        EditorTab ->
+            GuideEditorTab
+
+        AlgorithmsTab ->
+            GuideConversionTab
+
+        SimulationTab ->
+            GuideSimulationTab
+
+
+guidePrimaryAppTab : GuideTab -> Tab
+guidePrimaryAppTab guideTab =
+    case guideTab of
+        GuideEditorTab ->
+            EditorTab
+
+        GuideSimulationTab ->
+            SimulationTab
+
+        GuideConversionTab ->
+            AlgorithmsTab
+
+        GuideDataTab ->
+            AlgorithmsTab
+
+        GuideErrorsTab ->
+            EditorTab
+
+        GuideProjectTab ->
+            EditorTab
+
+
+guidePrimaryActionLabel : GuideTab -> String
+guidePrimaryActionLabel guideTab =
+    case guidePrimaryAppTab guideTab of
+        EditorTab ->
+            "Prejst do editora"
+
+        AlgorithmsTab ->
+            "Prejst do algoritmov"
+
+        SimulationTab ->
+            "Prejst do simulacie"
+
+
+guideTabTitle : GuideTab -> String
+guideTabTitle guideTab =
+    case guideTab of
+        GuideEditorTab ->
+            "Editor"
+
+        GuideSimulationTab ->
+            "Simulator"
+
+        GuideConversionTab ->
+            "Konverzia NFA -> DFA"
+
+        GuideDataTab ->
+            "JSON a export"
+
+        GuideErrorsTab ->
+            "Chybove spravy"
+
+        GuideProjectTab ->
+            "O projekte"
+
+
+guideTabIcon : GuideTab -> String
+guideTabIcon guideTab =
+    case guideTab of
+        GuideEditorTab ->
+            "fas fa-pen-ruler"
+
+        GuideSimulationTab ->
+            "fas fa-play"
+
+        GuideConversionTab ->
+            "fas fa-code-branch"
+
+        GuideDataTab ->
+            "fas fa-file-code"
+
+        GuideErrorsTab ->
+            "fas fa-triangle-exclamation"
+
+        GuideProjectTab ->
+            "fas fa-circle-info"
+
+
+guideTabSubtitle : GuideTab -> String
+guideTabSubtitle guideTab =
+    case guideTab of
+        GuideEditorTab ->
+            "Prakticky navod na budovanie stavov, prechodov a upravu grafu priamo na platne."
+
+        GuideSimulationTab ->
+            "Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu."
+
+        GuideConversionTab ->
+            ""
+
+        GuideDataTab ->
+            "Import, export, JSON format a praca s druhym automatom pri mnozinovych operaciach."
+
+        GuideErrorsTab ->
+            "Najcastejsie validacne problemy a co presne znamenaju pri tvorbe alebo importe automatu."
+
+        GuideProjectTab ->
+            "Ako je appka poskladana, co uklada a ake ma aktualne limity."
+
+
+guideTabs : List GuideTab
+guideTabs =
+    [ GuideEditorTab
+    , GuideSimulationTab
+    , GuideConversionTab
+    , GuideDataTab
+    , GuideErrorsTab
+    , GuideProjectTab
+    ]
+
+
 init : Model
 init =
     let
@@ -417,6 +593,8 @@ init =
     , simulation = resetSimulation initialAutomaton ""
     , playbackSpeed = Normal
     , guideOpen = False
+    , guideTab = GuideEditorTab
+    , jsonFileTarget = MainImportFile
     , msgInfo = "Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova."
     , fromSel = "0"
     , symSel = ""
@@ -444,6 +622,8 @@ type Msg
     | SimulationTick Float
     | ToggleGuide
     | CloseGuide
+    | SelectGuideTab GuideTab
+    | CloseGuideAndSelectTab Tab
     | FromChanged String
     | SymChanged String
     | ToChanged String
@@ -454,6 +634,7 @@ type Msg
     | ExportGraphPng
     | ImportJson
     | PickJsonFile
+    | PickOtherJsonFile
     | JsonFileLoaded String
     | OtherJsonChanged String
     | ImportTextChanged String
@@ -481,10 +662,24 @@ update msg model =
             { model | algorithmsSubTab = subTab }
 
         ToggleGuide ->
-            { model | guideOpen = not model.guideOpen }
+            if model.guideOpen then
+                { model | guideOpen = False }
+
+            else
+                { model | guideOpen = True, guideTab = guideTabForAppTab model.selectedTab }
 
         CloseGuide ->
             { model | guideOpen = False }
+
+        SelectGuideTab guideTab ->
+            { model | guideTab = guideTab }
+
+        CloseGuideAndSelectTab tab ->
+            { model
+                | guideOpen = False
+                , selectedTab = tab
+                , guideTab = guideTabForAppTab tab
+            }
 
         Editor eMsg ->
             let
@@ -684,10 +879,26 @@ update msg model =
             { model | importText = s }
 
         PickJsonFile ->
-            { model | msgInfo = "Vyber JSON subor na import." }
+            { model | jsonFileTarget = MainImportFile, msgInfo = "Vyber JSON subor na import." }
+
+        PickOtherJsonFile ->
+            { model | jsonFileTarget = OtherAutomatonFile, msgInfo = "Vyber JSON subor pre druhy automat." }
 
         JsonFileLoaded fileContent ->
-            { model | importText = fileContent, msgInfo = "Obsah JSON suboru bol nacitany." }
+            case model.jsonFileTarget of
+                MainImportFile ->
+                    { model
+                        | importText = fileContent
+                        , jsonFileTarget = MainImportFile
+                        , msgInfo = "Obsah JSON suboru bol nacitany."
+                    }
+
+                OtherAutomatonFile ->
+                    { model
+                        | otherText = fileContent
+                        , jsonFileTarget = MainImportFile
+                        , msgInfo = "Druhy automat bol nacitany zo suboru."
+                    }
 
         ImportJson ->
             case D.decodeString Codec.decode model.importText of
@@ -720,23 +931,28 @@ update msg model =
             { model | otherText = s }
 
         NfaToDfa ->
-            let
-                dfa =
-                    model.history.present
-                        |> Sub.nfaToDfa
-                        |> ensureAlphabetCoverage
+            case guardValid "NFA -> DFA" model.history.present model of
+                Just guardedModel ->
+                    guardedModel
 
-                hist =
-                    Ed.push dfa model.history
-            in
-            { model
-                | history = hist
-                , simulation = resetSimulation dfa model.inputWord
-                , msgInfo = "Subset construction hotova."
-            }
+                Nothing ->
+                    let
+                        dfa =
+                            model.history.present
+                                |> Sub.nfaToDfa
+                                |> ensureAlphabetCoverage
+
+                        hist =
+                            Ed.push dfa model.history
+                    in
+                    { model
+                        | history = hist
+                        , simulation = resetSimulation dfa model.inputWord
+                        , msgInfo = "Subset construction hotova."
+                    }
 
         MinimizeDfa ->
-            case guardDeterministic "Minimalizacia" model.history.present model of
+            case guardValidDeterministic "Minimalizacia" model.history.present model of
                 Just guardedModel ->
                     guardedModel
 
@@ -757,7 +973,7 @@ update msg model =
                     }
 
         ComplementDfa ->
-            case guardDeterministic "Komplement" model.history.present model of
+            case guardValidDeterministic "Komplement" model.history.present model of
                 Just guardedModel ->
                     guardedModel
 
@@ -780,24 +996,30 @@ update msg model =
         UnionWithOther ->
             case D.decodeString Codec.decode model.otherText of
                 Ok b ->
-                    if V.isDeterministic model.history.present && V.isDeterministic b then
-                        let
-                            u =
-                                Ops.union model.history.present b
-                                    |> ensureAlphabetCoverage
+                    case guardValidDeterministic "Zjednotenie" model.history.present model of
+                        Just guardedModel ->
+                            guardedModel
 
-                            hist =
-                                Ed.push u model.history
-                        in
-                        { model
-                            | history = hist
-                            , simulation = resetSimulation u model.inputWord
-                            , msgInfo = "Zjednotenie A U B je hotove."
-                            , otherText = ""
-                        }
+                        Nothing ->
+                            case guardValidDeterministic "Zjednotenie" b model of
+                                Just guardedModel ->
+                                    guardedModel
 
-                    else
-                        { model | msgInfo = dfaOnlyMessage "Zjednotenie" }
+                                Nothing ->
+                                    let
+                                        u =
+                                            Ops.union model.history.present b
+                                                |> ensureAlphabetCoverage
+
+                                        hist =
+                                            Ed.push u model.history
+                                    in
+                                    { model
+                                        | history = hist
+                                        , simulation = resetSimulation u model.inputWord
+                                        , msgInfo = "Zjednotenie A U B je hotove."
+                                        , otherText = ""
+                                    }
 
                 Err e ->
                     { model | msgInfo = "JSON druheho automatu je neplatny: " ++ D.errorToString e }
@@ -805,24 +1027,30 @@ update msg model =
         IntersectWithOther ->
             case D.decodeString Codec.decode model.otherText of
                 Ok b ->
-                    if V.isDeterministic model.history.present && V.isDeterministic b then
-                        let
-                            i =
-                                Ops.intersection model.history.present b
-                                    |> ensureAlphabetCoverage
+                    case guardValidDeterministic "Prienik" model.history.present model of
+                        Just guardedModel ->
+                            guardedModel
 
-                            hist =
-                                Ed.push i model.history
-                        in
-                        { model
-                            | history = hist
-                            , simulation = resetSimulation i model.inputWord
-                            , msgInfo = "Prienik A n B je hotovy."
-                            , otherText = ""
-                        }
+                        Nothing ->
+                            case guardValidDeterministic "Prienik" b model of
+                                Just guardedModel ->
+                                    guardedModel
 
-                    else
-                        { model | msgInfo = dfaOnlyMessage "Prienik" }
+                                Nothing ->
+                                    let
+                                        i =
+                                            Ops.intersection model.history.present b
+                                                |> ensureAlphabetCoverage
+
+                                        hist =
+                                            Ed.push i model.history
+                                    in
+                                    { model
+                                        | history = hist
+                                        , simulation = resetSimulation i model.inputWord
+                                        , msgInfo = "Prienik A n B je hotovy."
+                                        , otherText = ""
+                                    }
 
                 Err e ->
                     { model | msgInfo = "JSON druheho automatu je neplatny: " ++ D.errorToString e }
@@ -936,7 +1164,7 @@ view model =
             , viewMain model
             ]
         , if model.guideOpen then
-            viewGuideOverlay
+            viewGuideOverlay model
 
           else
             text ""
@@ -1182,17 +1410,17 @@ viewStateCard automaton stateId =
                 ]
             , div [ class "flex items-center gap-2" ]
                 [ viewIconButton
-                    (if isAccepting then "bg-[#a86434] text-[#f7ead9]" else "bg-[#2a201a] text-[#c9b29a] hover:bg-[#8f5a31] hover:text-[#f7ead9]")
+                    (if isAccepting then "bg-emerald-500 text-white" else "bg-[#2a201a] text-[#c9b29a] hover:bg-emerald-500 hover:text-white")
                     "fas fa-check"
                     "Akceptacny stav"
                     (Editor (Ed.ToggleAccepting stateId))
                 , viewIconButton
-                    (if isStart then "bg-[#d59652] text-[#1b120e]" else "bg-[#2a201a] text-[#c9b29a] hover:bg-[#d59652] hover:text-[#1b120e]")
+                    (if isStart then "bg-amber-400 text-[#1b120e]" else "bg-[#2a201a] text-[#c9b29a] hover:bg-amber-400 hover:text-[#1b120e]")
                     "fas fa-star"
                     "Startovaci stav"
                     (Editor (Ed.SetStart (Just stateId)))
                 , viewIconButton
-                    "bg-[#2a201a] text-[#c9b29a] hover:bg-[#76472c] hover:text-[#f7ead9]"
+                    "bg-[#2a201a] text-[#c9b29a] hover:bg-rose-500 hover:text-white"
                     "fas fa-trash"
                     "Odstranit stav"
                     (Editor (Ed.RemoveState stateId))
@@ -1254,7 +1482,14 @@ viewAlgorithmsPanel model =
                 viewSectionCard
                     "Mnozinove operacie"
                     "Vloz druhy automat v JSON a vytvor zjednotenie alebo prienik."
-                    [ textarea
+                    [ button
+                        [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                        , onClick PickOtherJsonFile
+                        ]
+                        [ i [ class "fas fa-folder-open mr-2" ] []
+                        , text "Vybrat JSON subor druheho automatu"
+                        ]
+                    , textarea
                         [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 font-mono text-sm text-[#e6d2be] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
                         , rows 8
                         , placeholder "{\"states\":[0,1],\"alphabet\":[\"0\",\"1\"],...}"
@@ -1595,110 +1830,288 @@ viewToolbarButton icon labelText extra buttonMsg =
         ]
 
 
-viewGuideOverlay : Html Msg
-viewGuideOverlay =
-    div [ class "fixed inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-sm" ]
-        [ div [ class "flex h-full w-full max-w-[620px] flex-col border-l border-[#4b392d] bg-[#140f0d] shadow-2xl shadow-black/50" ]
-            [ div [ class "flex items-start justify-between gap-4 border-b border-[#3a2c23] px-6 py-5" ]
-                [ div []
-                    [ div [ class "inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300" ]
-                        [ i [ class "fas fa-book-open" ] []
-                        , text "Guide"
+viewGuideOverlay : Model -> Html Msg
+viewGuideOverlay model =
+    let
+        currentTab =
+            model.guideTab
+
+        primaryTab =
+            guidePrimaryAppTab currentTab
+    in
+    div [ class "fixed inset-0 z-50 grid place-items-center bg-black/60 px-4 py-6 backdrop-blur-sm" ]
+        [ div [ class "flex max-h-[92vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[32px] border border-[#4a392f] bg-[#120f0d]/98 shadow-[0_28px_100px_rgba(0,0,0,0.5)]" ]
+            [ div [ class "border-b border-[#34271f] bg-gradient-to-r from-[#1b1512] via-[#171210] to-[#120f0d]" ]
+                [ div [ class "flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-start lg:justify-between" ]
+                    [ div [ class "max-w-3xl" ]
+                        ([ div [ class "inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300" ]
+                            [ i [ class "fas fa-book-open" ] []
+                            , text "Sprievodca aplikaciou"
+                            ]
+                         , h2 [ class "mt-4 text-3xl font-black tracking-tight text-[#f5ede3]" ] [ text "Guide" ]
+                         ]
+                            ++ (if String.isEmpty (guideTabSubtitle currentTab) then
+                                    []
+
+                                else
+                                    [ p [ class "mt-3 text-sm leading-7 text-[#cbb39a]" ] [ text (guideTabSubtitle currentTab) ] ]
+                               )
+                        )
+                    , div [ class "flex items-center gap-3 self-start" ]
+                        [ button
+                            [ class "inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] px-4 py-3 text-sm font-semibold text-[#1b120e] shadow-lg shadow-amber-900/30 transition hover:brightness-110"
+                            , onClick (CloseGuideAndSelectTab primaryTab)
+                            ]
+                            [ i [ class "fas fa-arrow-right" ] []
+                            , text (guidePrimaryActionLabel currentTab)
+                            ]
+                        , button
+                            [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#211914] text-[#d8c1aa] transition hover:bg-[#76472c] hover:text-[#f7ead9]"
+                            , onClick CloseGuide
+                            , title "Zavriet guide"
+                            ]
+                            [ i [ class "fas fa-times" ] [] ]
                         ]
-                    , h2 [ class "mt-4 text-2xl font-black text-[#f5ede3]" ] [ text "Navod k aplikacii" ]
-                    , p [ class "mt-2 max-w-xl text-sm leading-6 text-[#c9b29a]" ]
-                        [ text "Toto okno popisuje, co v editore funguje, ako sa sprava simulacia, co ocakavaju algoritmy a aky JSON format vie aplikacia nacitat." ]
                     ]
-                , button
-                    [ class "flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2a201a] text-[#d8c1aa] transition hover:bg-[#76472c] hover:text-[#f7ead9]"
-                    , onClick CloseGuide
-                    , title "Zavriet guide"
-                    ]
-                    [ i [ class "fas fa-times" ] [] ]
-                ]
-            , div [ class "flex-1 space-y-4 overflow-y-auto px-6 py-6 scrollbar-thin" ]
-                [ viewGuideSection
-                    "1. Co je to za appku"
-                    [ "Aplikacia sluzi na tvorbu a upravu konecnych automatov, ich vizualizaciu v grafe a spustanie zakladnych algoritmov nad automatmi."
-                    , "Automat tvoria stavy, prechody, startovaci stav, akceptacne stavy a pozicie uzlov na platne."
-                    , "Kazda zmena v editore sa uklada do historie, preto mozes pouzivat Undo a Redo."
-                    ]
-                , viewGuideSection
-                    "2. Editor"
-                    [ "V zalozke Editor vies pridavat stavy, mazat ich, oznacovat akceptacne stavy a nastavit start."
-                    , "Prechody sa vytvaraju vyberom stavu From, symbolu a cieloveho stavu To."
-                    , "Pri zmazani stavu sa odstrania aj prechody, ktore do neho viedli alebo z neho vychadzali."
-                    , "Stavy mozes presuvat mysou priamo na platne. Po pusteni sa nova pozicia ulozi do historie."
-                    ]
-                , viewGuideSection
-                    "3. DFA vs NFA"
-                    [ "Aplikacia povazuje automat za deterministicky, ak z jedneho stavu nevedu pre rovnaky symbol dve hrany do roznych cielov."
-                    , "Ak sa take duplicity objavia, v spodnych statistikach uvidis upozornenie a automat je brany ako NFA."
-                    , "NFA moze mat viac prechodov na ten isty symbol. Simulacia po krokoch a niektore algoritmy su ale dostupne iba pre DFA."
-                    ]
-                , viewGuideSection
-                    "4. Simulacia slova"
-                    [ "Zalozka Simulacia cita vstup po jednom symbole zlava doprava."
-                    , "Tlacidlo Krok vykona presne jeden prechod. Tlacidlo Auto spusti prehravanie s nastavitelou rychlostou."
-                    , "Vyhodnot hned pusti simulaciu az do konca bez krokovania."
-                    , "Simulacia momentalne funguje iba pre DFA. Ak je automat NFA, appka ta najprv vyzve na prevod NFA -> DFA."
-                    , "Ak pre aktualny stav a symbol neexistuje prechod, automat sa zasekne."
-                    ]
-                , viewGuideSection
-                    "5. Algoritmy"
-                    [ "NFA -> DFA robi subset construction. Aktualna implementacia nepodporuje epsilon prechody."
-                    , "Minimalizacia je urcena pre DFA. Najprv odstrani nedosiahnutelne stavy, potom automat totalizuje a az potom robi partition refinement."
-                    , "Komplement je urceny pre DFA. Chybajuce prechody sa predtym doplnia do sink stavu."
-                    , "Zjednotenie a prienik pracuju nad dvoma DFA cez produktovu konstrukciu. Druhy automat treba vlozit ako JSON."
-                    ]
-                , viewGuideSection
-                    "6. Graf a vizualizacia"
-                    [ "Startovaci stav ma zvlastne oznacenie sipkou zlava."
-                    , "Akceptacny stav ma dvojitu kruznicu."
-                    , "Pri simulacii sa zvyrazni aktualny stav a posledny pouzity prechod."
-                    , "Ak medzi dvoma stavmi existuje viac symbolov v tom istom smere, graf ich zoskupi do jedneho labelu."
-                    ]
-                , viewGuideSection
-                    "7. Import a export"
-                    [ "Automat vies exportovat ako JSON do textu v appke alebo do suboru."
-                    , "Graf vies stiahnut aj ako SVG alebo PNG."
-                    , "Import funguje bud vlozenim JSON textu, alebo vyberom JSON suboru z disku."
-                    , "Ak importovany automat nema ulozene positions, appka stavy automaticky rozlozi na kruznicu."
-                    ]
-                , viewGuideSection
-                    "8. Ako funguje abeceda"
-                    [ "Abeceda sa v appke priebezne doplna podla symbolov, ktore realne pouzijes v prechodoch."
-                    , "To znamena, ze ked vytvoris prechod s novym symbolom, aplikacia ho zaradi do alphabet automaticky."
-                    , "Pri mnozinovych operaciach sa pracuje s efektivnou abecedou oboch automatov dokopy."
-                    ]
-                , viewGuideCodeBlock
-                    "9. JSON format"
-                    "{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}"
-                , viewGuideSection
-                    "10. Limity aktualnej verzie"
-                    [ "Simulacia slova, minimalizacia, komplement, zjednotenie a prienik ocakavaju DFA."
-                    , "Prevod NFA -> DFA nepodporuje epsilon prechody."
-                    , "Stavy sa identifikuju cislami a pri pridavani noveho stavu sa pouzije dalsie volne ID za aktualnym maximom."
+                , div [ class "overflow-x-auto border-t border-[#2b211b]" ]
+                    [ div [ class "flex min-w-max gap-1 px-3 py-3" ]
+                        (List.map (viewGuideTabButton currentTab) guideTabs)
                     ]
                 ]
+            , div [ class "flex-1 overflow-y-auto bg-[#15110f] px-6 py-6 scrollbar-thin" ]
+                [ viewGuideTabContent currentTab ]
             ]
         ]
 
 
-viewGuideSection : String -> List String -> Html Msg
-viewGuideSection titleText items =
-    div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10" ]
-        [ h3 [ class "text-base font-bold text-[#f5ede3]" ] [ text titleText ]
-        , div [ class "mt-3 space-y-3 text-sm leading-6 text-[#d8c1aa]" ]
-            (List.map (\item -> p [ class "rounded-2xl border border-[#3a2c23] bg-[#120f0d]/75 px-4 py-3" ] [ text item ]) items)
+viewGuideTabButton : GuideTab -> GuideTab -> Html Msg
+viewGuideTabButton activeTab tab =
+    let
+        isActive =
+            activeTab == tab
+    in
+    button
+        [ class <|
+            "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200 "
+                ++ (if isActive then
+                        "bg-[#e6a95f] text-[#1b120e] shadow-lg shadow-amber-900/25"
+
+                    else
+                        "text-[#d8c1aa] hover:bg-[#241b16] hover:text-[#f3e4d2]"
+                   )
+        , onClick (SelectGuideTab tab)
+        ]
+        [ i [ class (guideTabIcon tab) ] []
+        , text (guideTabTitle tab)
+        ]
+
+
+viewGuideTabContent : GuideTab -> Html Msg
+viewGuideTabContent guideTab =
+    case guideTab of
+        GuideEditorTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-pen-ruler" "Editor automatov" "Panel Editor je urceny na tvorbu stavov, prechodov a upravu grafu s okamzitou vizualnou odozvou." [ "Stavy", "Prechody", "Drag & drop", "Undo / Redo" ]
+                , viewGuideActionTable
+                    "Praca so stavmi"
+                    "Zakladne akcie pre stavovy diagram."
+                    [ ( "Pridanie stavu", "V podkarte Stavy klikni na Pridat stav. Appka vytvori dalsie volne ID a vlozi novy uzol na platno." )
+                    , ( "Startovaci stav", "Hviezdicka nastavi vybrany stav ako jediny start automatu." )
+                    , ( "Akceptacny stav", "Fajka prepina akceptacny stav. V grafe ho spoznas podla dvojitej kruznice." )
+                    , ( "Odstranenie stavu", "Kos odstrani stav aj vsetky prechody, ktore do neho vedu alebo z neho vychadzaju." )
+                    , ( "Presun na platne", "Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie." )
+                    ]
+                , viewGuideActionTable
+                    "Praca s prechodmi"
+                    "Ako definovat jazyk automatu v editore."
+                    [ ( "Novy prechod", "V podkarte Prechod zvol From, symbol a To. Hrana sa hned vykresli v diagrame." )
+                    , ( "Symbol prechodu", "Pole Symbol akceptuje lubovolny textovy symbol. Pouzite symboly sa doplnaju do abecedy." )
+                    , ( "Zoznam prechodov", "Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom." )
+                    , ( "DFA vs NFA", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, automat je NFA a cast algoritmov sa zablokuje." )
+                    ]
+                ]
+
+        GuideSimulationTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-play" "Simulator slova" "Simulacia cita vstup zlava doprava po jednom symbole a synchronizuje pasku s grafom automatu." [ "Krok", "Auto", "Vyhodnot hned", "Tape" ]
+                , viewGuideActionTable
+                    "Ovladanie simulacie"
+                    "Tri rozne sposoby behu nad jednym vstupom."
+                    [ ( "Vstupne slovo", "Do pola zadas retazec, ktory sa rozbije na jednotlive symboly. Paska sa obnovi okamzite." )
+                    , ( "Krok", "Vykona presne jeden prechod a posunie citanie o jeden symbol." )
+                    , ( "Auto", "Spusti prehravanie s nastavitelou rychlostou Slow / Normal / Fast." )
+                    , ( "Vyhodnot hned", "Prebehne cely vstup bez medzikrokov." )
+                    , ( "Reset", "Vrati simulaciu na zaciatok a nastavi aktualny stav spat na start." )
+                    ]
+                , viewGuideActionTable
+                    "Co uvidis v grafe"
+                    "Vizualne napovedy pocas simulacie."
+                    [ ( "Aktualny stav", "Zvyrazni sa ringom okolo uzla, aby bolo vidno, kde sa automat prave nachadza." )
+                    , ( "Posledny prechod", "Pouzita hrana aj jej label sa po kroku zvyraznia." )
+                    , ( "Zaseknutie", "Ak pre aktualny stav a symbol chyba prechod, simulacia sa zastavi na danom mieste." )
+                    , ( "DFA obmedzenie", "Krokovanie aj autoplay su urcene pre validny DFA." )
+                    ]
+                ]
+
+        GuideConversionTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-code-branch" "Konverzia a algoritmy" "Panel Algoritmy meni aktualny automat priamo na platne, preto sa hodi na analyzu aj formalne overovanie." [ "NFA -> DFA", "Minimalizacia", "Komplement", "Produkt" ]
+                , viewGuideActionTable
+                    "Dostupne algoritmy"
+                    "Kazdy vysledok prepise aktualne platno."
+                    [ ( "NFA -> DFA", "Pouziva subset construction. Aktualna verzia nepodporuje epsilon prechody." )
+                    , ( "Minimalizacia", "Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy." )
+                    , ( "Komplement", "Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu." )
+                    , ( "Zjednotenie a prienik", "Nacita druhy automat z JSON a spravi produktovu konstrukciu nad spolocnou abecedou." )
+                    ]
+                , viewGuideActionTable
+                    "Formalne podmienky"
+                    "Predpoklady pre korektny vysledok."
+                    [ ( "Validny automat", "Start musi existovat, accepting stavy musia byt v states a prechody mozu odkazovat len na existujuce stavy." )
+                    , ( "Deterministicky vstup", "Minimalizacia, komplement, zjednotenie, prienik aj simulacia ocakavaju validny DFA." )
+                    , ( "Pouzita abeceda", "Pri produktovych operaciach sa pracuje so spolocnou abecedou oboch automatov." )
+                    ]
+                ]
+
+        GuideDataTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-file-code" "JSON, import a export" "Automaty vies serializovat do JSON, nacitat zo suboru a exportovat aj samotny diagram." [ "JSON text", "JSON subor", "SVG", "PNG" ]
+                , viewGuideActionTable
+                    "Import / Export workflow"
+                    "Vsetko, co potrebujes na prenos automatu."
+                    [ ( "Zobrazit JSON v appke", "Vygeneruje serializovany vystup aktualneho automatu do textoveho pola." )
+                    , ( "Stiahnut JSON subor", "Pripravi a stiahne JSON subor aktualneho automatu." )
+                    , ( "Import z textu", "Vloz JSON do pola a klikni Importovat automat." )
+                    , ( "Import zo suboru", "Vybrat JSON subor nacita obsah z disku do importneho pola." )
+                    , ( "Druhy automat", "Pri A U B a A n B vies druhy automat vlozit ako text alebo vybrat ako subor." )
+                    , ( "Export grafu", "Diagram vies ulozit ako SVG aj PNG." )
+                    ]
+                , viewGuideInfoGrid
+                    "Co musi obsahovat JSON"
+                    "Toto su casti, ktore appka cita pri importe."
+                    [ ( "states", "Zoznam identifikatorov stavov ako 0, 1, 2..." )
+                    , ( "alphabet", "Zoznam symbolov abecedy." )
+                    , ( "transitions", "Pole prechodov tvaru { from, symbol, to }." )
+                    , ( "start", "Jediny startovaci stav." )
+                    , ( "accepting", "Zoznam akceptacnych stavov." )
+                    , ( "positions", "Suradnice uzlov na platne." )
+                    ]
+                , viewGuideCodeBlock
+                    "Priklad validneho JSON"
+                    "{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}"
+                ]
+
+        GuideErrorsTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-triangle-exclamation" "Chybove spravy a validacia" "Pred algoritmami aj importom aplikacia kontroluje, ci je automat formalne konzistentny." [ "Start", "Accepting", "Transitions", "Determinism" ]
+                , viewGuideActionTable
+                    "Validacne chyby"
+                    "Problemy na urovni dat automatu."
+                    [ ( "Chyba startovaci stav", "Automat nema nastaveny start a neda sa korektne spustit." )
+                    , ( "Start nie je v states", "Start odkazuje na stav, ktory v mnozine states neexistuje." )
+                    , ( "Akceptacne stavy mimo states", "Niektory stav v poli accepting sa nenachadza v states." )
+                    , ( "Prechody na neexistujuce stavy", "Hrana odkazuje na stav, ktory nie je definovany." )
+                    , ( "Symboly mimo abecedy", "JSON obsahuje symboly, ktore nie su uvedene v alphabet." )
+                    ]
+                , viewGuideActionTable
+                    "Algoritmicke obmedzenia"
+                    "Aj validny automat moze narazit na obmedzenie algoritmu."
+                    [ ( "DFA only", "Simulacia slova, minimalizacia, komplement, zjednotenie a prienik su urcene pre validny DFA." )
+                    , ( "Nedeterministicke prechody", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, treba najprv spustit NFA -> DFA." )
+                    , ( "Epsilon prechody", "Subset construction v tejto verzii epsilon prechody nepodporuje." )
+                    , ( "Neplatny JSON druheho automatu", "Pri mnozinovych operaciach musi byt aj druhy automat v korektnom JSON formate." )
+                    ]
+                ]
+
+        GuideProjectTab ->
+            div [ class "space-y-5" ]
+                [ viewGuideSummaryCard "fas fa-circle-info" "O projekte" "Projekt je napisany v Elm a pouziva funkcionalny model aktualizacii, co je dobre pre bezpecne experimentovanie s automatmi." [ "Elm", "History", "SVG graph", "JSON codec" ]
+                , viewGuideInfoGrid
+                    "Ako je appka poskladana"
+                    "Strucny technicky prehlad."
+                    [ ( "Datovy model", "Automat tvoria stavy, abeceda, prechody, start, accepting a positions." )
+                    , ( "Historia zmien", "Editor uklada zmeny do undo/redo historie." )
+                    , ( "Vizualizacia", "Graf sa kresli ako SVG s loopmi, obojsmernymi hranami a zoskupenymi labelmi." )
+                    , ( "Abeceda", "Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly." )
+                    ]
+                , viewGuideInfoGrid
+                    "Aktualne limity"
+                    "Dolezite poznamky pred odovzdanim."
+                    [ ( "DFA operacie", "Simulacia, minimalizacia, komplement, zjednotenie a prienik ocakavaju validny DFA." )
+                    , ( "NFA -> DFA", "Subset construction nepodporuje epsilon prechody." )
+                    , ( "Prepis vysledku", "Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export." )
+                    , ( "Ciselne ID stavov", "Stavy su identifikovane cislami a novy stav dostane dalsie volne ID." )
+                    ]
+                ]
+
+
+viewGuideSummaryCard : String -> String -> String -> List String -> Html Msg
+viewGuideSummaryCard icon titleText descriptionText chips =
+    div [ class "rounded-[28px] border border-amber-500/15 bg-gradient-to-br from-[#261b15] via-[#1a1411] to-[#120f0d] p-6 shadow-xl shadow-black/20" ]
+        [ div [ class "flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between" ]
+            [ div [ class "flex items-start gap-4" ]
+                [ div [ class "flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-amber-500/12 text-amber-200 ring-1 ring-amber-500/20" ]
+                    [ i [ class (icon ++ " text-xl") ] [] ]
+                , div []
+                    [ h3 [ class "text-2xl font-black text-[#f5ede3]" ] [ text titleText ]
+                    , p [ class "mt-2 max-w-3xl text-sm leading-7 text-[#ccb49b]" ] [ text descriptionText ]
+                    ]
+                ]
+            , div [ class "flex flex-wrap gap-2" ]
+                (List.map viewGuideChip chips)
+            ]
+        ]
+
+
+viewGuideChip : String -> Html Msg
+viewGuideChip chipText =
+    span [ class "rounded-full border border-[#5a4638] bg-[#1a1411]/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#e2c7a9]" ]
+        [ text chipText ]
+
+
+viewGuideActionTable : String -> String -> List ( String, String ) -> Html Msg
+viewGuideActionTable titleText subtitleText rows =
+    div [ class "overflow-hidden rounded-[28px] border border-[#45352b] bg-[#16110f]/92 shadow-xl shadow-black/10" ]
+        [ div [ class "border-b border-[#34271f] px-5 py-5" ]
+            [ h3 [ class "text-lg font-bold text-[#f5ede3]" ] [ text titleText ]
+            , p [ class "mt-1 text-sm leading-6 text-[#bca48d]" ] [ text subtitleText ]
+            ]
+        , div [ class "divide-y divide-[#2f241d]" ]
+            (List.map viewGuideActionRow rows)
+        ]
+
+
+viewGuideActionRow : ( String, String ) -> Html Msg
+viewGuideActionRow ( labelText, descriptionText ) =
+    div [ class "grid gap-2 px-5 py-4 md:grid-cols-[240px,1fr] md:gap-6 md:px-6" ]
+        [ div [ class "text-sm font-semibold text-[#f1deca]" ] [ text labelText ]
+        , div [ class "text-sm leading-7 text-[#c9b29a]" ] [ text descriptionText ]
+        ]
+
+
+viewGuideInfoGrid : String -> String -> List ( String, String ) -> Html Msg
+viewGuideInfoGrid titleText subtitleText entries =
+    div [ class "rounded-[28px] border border-[#45352b] bg-[#16110f]/92 p-5 shadow-xl shadow-black/10" ]
+        [ h3 [ class "text-lg font-bold text-[#f5ede3]" ] [ text titleText ]
+        , p [ class "mt-1 text-sm leading-6 text-[#bca48d]" ] [ text subtitleText ]
+        , div [ class "mt-4 grid gap-3 md:grid-cols-2" ]
+            (List.map viewGuideInfoCard entries)
+        ]
+
+
+viewGuideInfoCard : ( String, String ) -> Html Msg
+viewGuideInfoCard ( titleText, descriptionText ) =
+    div [ class "rounded-3xl border border-[#3a2c23] bg-[#120f0d]/88 p-4" ]
+        [ h4 [ class "text-sm font-semibold text-[#f5ede3]" ] [ text titleText ]
+        , p [ class "mt-2 text-sm leading-7 text-[#c9b29a]" ] [ text descriptionText ]
         ]
 
 
 viewGuideCodeBlock : String -> String -> Html Msg
 viewGuideCodeBlock titleText codeText =
-    div [ class "rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10" ]
-        [ h3 [ class "text-base font-bold text-[#f5ede3]" ] [ text titleText ]
-        , pre [ class "mt-3 overflow-x-auto rounded-2xl border border-[#3a2c23] bg-[#120f0d]/90 p-4 text-xs leading-6 text-[#f3e4d2]" ]
+    div [ class "rounded-[28px] border border-[#45352b] bg-[#16110f]/92 p-5 shadow-xl shadow-black/10" ]
+        [ h3 [ class "text-lg font-bold text-[#f5ede3]" ] [ text titleText ]
+        , pre [ class "mt-4 overflow-x-auto rounded-3xl border border-[#3a2c23] bg-[#120f0d]/95 p-5 text-xs leading-7 text-[#f3e4d2]" ]
             [ code [] [ text codeText ] ]
         ]
 
@@ -1801,6 +2214,9 @@ commandFor msg model =
             exportGraphPngFile ()
 
         PickJsonFile ->
+            requestJsonFile ()
+
+        PickOtherJsonFile ->
             requestJsonFile ()
 
         _ ->

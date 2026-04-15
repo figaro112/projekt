@@ -16,17 +16,20 @@ minimize a0 =
                 aReachable =
                     removeUnreachable a0
 
-                usedSyms =
-                    aReachable.transitions
-                        |> List.map .symbol
-                        |> Set.fromList
-                        |> Set.toList
+                syms =
+                    if List.isEmpty aReachable.alphabet then
+                        aReachable.transitions
+                            |> List.map .symbol
+                            |> Set.fromList
+                            |> Set.toList
+
+                    else
+                        aReachable.alphabet
+                            |> Set.fromList
+                            |> Set.toList
 
                 a =
-                    totalizeWithSymbols usedSyms aReachable
-
-                syms =
-                    usedSyms
+                    totalizeWithSymbols syms aReachable
 
                 delta : A.StateId -> A.Symbol -> A.StateId
                 delta s sym =

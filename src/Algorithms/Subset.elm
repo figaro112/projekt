@@ -5,10 +5,6 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 
-
--- Record akumulátor (TOP-LEVEL, nie v let!)
-
-
 type alias Acc =
     { se : Dict String Int
     , qs : List (Set A.StateId)
@@ -18,8 +14,6 @@ type alias Acc =
     }
 
 
-{-| Prevod NFA -> DFA (bez ε-prechodov): metóda množín.
--}
 nfaToDfa : A.Automaton -> A.Automaton
 nfaToDfa a =
     case a.start of
@@ -28,10 +22,24 @@ nfaToDfa a =
 
         Just s0 ->
             let
+                alphabet : List A.Symbol
+                alphabet =
+                    if List.isEmpty a.alphabet then
+                        a.transitions
+                            |> List.map .symbol
+                            |> Set.fromList
+                            |> Set.toList
+
+                    else
+                        a.alphabet
+                            |> Set.fromList
+                            |> Set.toList
+
                 startSet : Set A.StateId
                 startSet =
                     Set.fromList [ s0 ]
 
+                keyOf : Set A.StateId -> String
                 keyOf ss =
                     ss
                         |> Set.toList
@@ -39,17 +47,19 @@ nfaToDfa a =
                         |> List.map String.fromInt
                         |> String.join ","
 
+                move : Set A.StateId -> A.Symbol -> Set A.StateId
                 move ss sym =
                     ss
                         |> Set.toList
                         |> List.concatMap
-                            (\s ->
+                            (\stateId ->
                                 a.transitions
-                                    |> List.filter (\t -> t.from == s && t.symbol == sym)
+                                    |> List.filter (\t -> t.from == stateId && t.symbol == sym)
                                     |> List.map .to_
                             )
                         |> Set.fromList
 
+                step : Acc -> Acc
                 step st =
                     case st.qs of
                         [] ->
@@ -60,60 +70,47 @@ nfaToDfa a =
                                 sid =
                                     Dict.get (keyOf sset) st.se |> Maybe.withDefault -1
 
-                                -- FIX: foldl má typ (a -> b -> b). Tu: A.Symbol -> Acc -> Acc
                                 foldSym : A.Symbol -> Acc -> Acc
                                 foldSym sym acc =
                                     let
                                         dest =
                                             move sset sym
+
+                                        key =
+                                            keyOf dest
                                     in
-                                    if Set.isEmpty dest then
-                                        acc
+                                    case Dict.get key acc.se of
+                                        Just did ->
+                                            { acc
+                                                | tr = { from = sid, symbol = sym, to_ = did } :: acc.tr
+                                                , sets = Dict.insert key dest acc.sets
+                                            }
 
-                                    else
-                                        let
-                                            k =
-                                                keyOf dest
-                                        in
-                                        case Dict.get k acc.se of
-                                            Just did ->
-                                                { acc
-                                                    | tr = { from = sid, symbol = sym, to_ = did } :: acc.tr
-                                                    , sets = Dict.insert k dest acc.sets
-                                                }
-
-                                            Nothing ->
-                                                let
-                                                    did =
-                                                        acc.nid
-                                                in
-                                                { se = Dict.insert k did acc.se
-                                                , qs = dest :: acc.qs  -- Pridaj na začiatok namiesto ++
-                                                , tr = { from = sid, symbol = sym, to_ = did } :: acc.tr
-                                                , nid = acc.nid + 1
-                                                , sets = Dict.insert k dest acc.sets
-                                                }
+                                        Nothing ->
+                                            let
+                                                did =
+                                                    acc.nid
+                                            in
+                                            { se = Dict.insert key did acc.se
+                                            , qs = dest :: acc.qs
+                                            , tr = { from = sid, symbol = sym, to_ = did } :: acc.tr
+                                            , nid = acc.nid + 1
+                                            , sets = Dict.insert key dest acc.sets
+                                            }
 
                                 acc2 : Acc
                                 acc2 =
                                     List.foldl
                                         foldSym
                                         { se = st.se, qs = rest, tr = st.tr, nid = st.nid, sets = st.sets }
-                                        a.alphabet
-
-                                st2 =
-                                    { qs = acc2.qs
-                                    , se = acc2.se
-                                    , sets = acc2.sets
-                                    , tr = acc2.tr
-                                    , nid = acc2.nid
-                                    }
+                                        alphabet
                             in
-                            step st2
+                            step acc2
 
                 startKey =
                     keyOf startSet
 
+                initSt : Acc
                 initSt =
                     { qs = [ startSet ]
                     , se = Dict.fromList [ ( startKey, 0 ) ]
@@ -132,10 +129,10 @@ nfaToDfa a =
                     final.sets
                         |> Dict.toList
                         |> List.filterMap
-                            (\( k, sset ) ->
+                            (\( key, sset ) ->
                                 let
                                     sid =
-                                        Dict.get k final.se |> Maybe.withDefault -1
+                                        Dict.get key final.se |> Maybe.withDefault -1
 
                                     inter =
                                         Set.intersect sset (Set.fromList a.accepting)
@@ -147,13 +144,10 @@ nfaToDfa a =
                                     Just sid
                             )
             in
-            let
-                resultStates = statesList
-            in
-            { states = resultStates
-            , alphabet = a.alphabet
+            { states = statesList
+            , alphabet = alphabet
             , transitions = List.reverse final.tr
             , start = Just 0
             , accepting = acceptingList
-            , positions = A.defaultPositions resultStates
+            , positions = A.defaultPositions statesList
             }

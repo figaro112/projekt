@@ -4880,6 +4880,8 @@ var $author$project$Main$commandFor = F2(
 				return $author$project$Main$exportGraphPngFile(_Utils_Tuple0);
 			case 'PickJsonFile':
 				return $author$project$Main$requestJsonFile(_Utils_Tuple0);
+			case 'PickOtherJsonFile':
+				return $author$project$Main$requestJsonFile(_Utils_Tuple0);
 			default:
 				return $elm$core$Platform$Cmd$none;
 		}
@@ -5200,6 +5202,8 @@ var $elm$core$Task$perform = F2(
 var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Main$AlgoBasicSub = {$: 'AlgoBasicSub'};
 var $author$project$Main$EditorTab = {$: 'EditorTab'};
+var $author$project$Main$GuideEditorTab = {$: 'GuideEditorTab'};
+var $author$project$Main$MainImportFile = {$: 'MainImportFile'};
 var $author$project$Main$Normal = {$: 'Normal'};
 var $author$project$Main$StatesSub = {$: 'StatesSub'};
 var $elm$core$Basics$cos = _Basics_cos;
@@ -5466,9 +5470,11 @@ var $author$project$Main$init = function () {
 		exportText: '',
 		fromSel: '0',
 		guideOpen: false,
+		guideTab: $author$project$Main$GuideEditorTab,
 		history: $author$project$Editor$Update$initHistory(initialAutomaton),
 		importText: '',
 		inputWord: '',
+		jsonFileTarget: $author$project$Main$MainImportFile,
 		msgInfo: 'Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova.',
 		otherText: '',
 		playbackSpeed: $author$project$Main$Normal,
@@ -5946,6 +5952,7 @@ var $author$project$Editor$Update$MoveState = F3(
 	function (a, b, c) {
 		return {$: 'MoveState', a: a, b: b, c: c};
 	});
+var $author$project$Main$OtherAutomatonFile = {$: 'OtherAutomatonFile'};
 var $elm$core$List$maximum = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -6741,9 +6748,6 @@ var $author$project$Automaton$Codec$decode = A7(
 				$elm$json$Json$Decode$succeed($elm$core$Dict$empty)
 			])));
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
-var $author$project$Main$dfaOnlyMessage = function (actionLabel) {
-	return actionLabel + ' je dostupne iba pre DFA. Najprv pouzi NFA -> DFA.';
-};
 var $elm$json$Json$Encode$float = _Json_wrap;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
@@ -6842,6 +6846,9 @@ var $author$project$Main$exportJsonString = function (automaton) {
 		2,
 		$author$project$Automaton$Codec$encode(automaton));
 };
+var $author$project$Main$dfaOnlyMessage = function (actionLabel) {
+	return actionLabel + ' je dostupne iba pre DFA. Najprv pouzi NFA -> DFA.';
+};
 var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$List$sort = function (xs) {
 	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
@@ -6883,24 +6890,184 @@ var $author$project$Automaton$Validate$isDeterministic = function (automaton) {
 	return $elm$core$List$isEmpty(
 		$author$project$Automaton$Validate$duplicateTransitionGroups(automaton));
 };
+var $author$project$Main$stopAutoplay = function (model) {
+	var currentSimulation = model.simulation;
+	return _Utils_update(
+		model,
+		{
+			simulation: _Utils_update(
+				currentSimulation,
+				{autoplay: false})
+		});
+};
 var $author$project$Main$guardDeterministic = F3(
 	function (actionLabel, automaton, model) {
 		if ($author$project$Automaton$Validate$isDeterministic(automaton)) {
 			return $elm$core$Maybe$Nothing;
 		} else {
-			var currentSimulation = model.simulation;
-			var stoppedSimulation = _Utils_update(
-				currentSimulation,
-				{autoplay: false});
+			var stoppedModel = $author$project$Main$stopAutoplay(model);
 			return $elm$core$Maybe$Just(
 				_Utils_update(
-					model,
+					stoppedModel,
 					{
-						msgInfo: $author$project$Main$dfaOnlyMessage(actionLabel),
-						simulation: stoppedSimulation
+						msgInfo: $author$project$Main$dfaOnlyMessage(actionLabel)
 					}));
 		}
 	});
+var $author$project$Main$renderErrors = function (errs) {
+	if (!errs.b) {
+		return '';
+	} else {
+		return A2(
+			$elm$core$String$join,
+			' | ',
+			A2(
+				$elm$core$List$map,
+				function (e) {
+					switch (e.$) {
+						case 'StartMissing':
+							return 'Chyba startovaci stav.';
+						case 'StartNotInStates':
+							return 'Startovaci stav nie je v mnozine states.';
+						case 'AcceptingNotInStates':
+							var xs = e.a;
+							return 'Akceptacne stavy mimo states: ' + A2(
+								$elm$core$String$join,
+								', ',
+								A2($elm$core$List$map, $elm$core$String$fromInt, xs));
+						case 'SymbolsOutsideAlphabet':
+							var syms = e.a;
+							return 'Symboly mimo abecedy: ' + A2($elm$core$String$join, ', ', syms);
+						default:
+							var pairs = e.a;
+							return 'Prechody odkazuju na neexistujuce stavy: ' + A2(
+								$elm$core$String$join,
+								', ',
+								A2(
+									$elm$core$List$map,
+									function (_v2) {
+										var fromState = _v2.a;
+										var toState = _v2.b;
+										return '(' + ($elm$core$String$fromInt(fromState) + (' -> ' + ($elm$core$String$fromInt(toState) + ')')));
+									},
+									pairs));
+					}
+				},
+				errs));
+	}
+};
+var $author$project$Main$invalidAutomatonMessage = F2(
+	function (actionLabel, errs) {
+		return actionLabel + (' nie je mozne spustit: ' + $author$project$Main$renderErrors(errs));
+	});
+var $author$project$Automaton$Validate$AcceptingNotInStates = function (a) {
+	return {$: 'AcceptingNotInStates', a: a};
+};
+var $author$project$Automaton$Validate$StartMissing = {$: 'StartMissing'};
+var $author$project$Automaton$Validate$StartNotInStates = {$: 'StartNotInStates'};
+var $author$project$Automaton$Validate$SymbolsOutsideAlphabet = function (a) {
+	return {$: 'SymbolsOutsideAlphabet', a: a};
+};
+var $author$project$Automaton$Validate$TransitionStatesNotInStates = function (a) {
+	return {$: 'TransitionStatesNotInStates', a: a};
+};
+var $author$project$Automaton$Validate$validate = function (a) {
+	var stateSet = $elm$core$Set$fromList(a.states);
+	var badTransitionStates = $elm$core$Set$toList(
+		$elm$core$Set$fromList(
+			A2(
+				$elm$core$List$map,
+				function (t) {
+					return _Utils_Tuple2(t.from, t.to_);
+				},
+				A2(
+					$elm$core$List$filter,
+					function (t) {
+						return (!A2($elm$core$Set$member, t.from, stateSet)) || (!A2($elm$core$Set$member, t.to_, stateSet));
+					},
+					a.transitions))));
+	var badAcc = $elm$core$Set$toList(
+		$elm$core$Set$fromList(
+			A2(
+				$elm$core$List$filter,
+				function (s) {
+					return !A2($elm$core$Set$member, s, stateSet);
+				},
+				a.accepting)));
+	var alphabetSet = $elm$core$Set$fromList(a.alphabet);
+	var badSym = $elm$core$Set$toList(
+		$elm$core$Set$fromList(
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.symbol;
+				},
+				A2(
+					$elm$core$List$filter,
+					function (t) {
+						return !A2($elm$core$Set$member, t.symbol, alphabetSet);
+					},
+					a.transitions))));
+	return _Utils_ap(
+		function () {
+			var _v0 = a.start;
+			if (_v0.$ === 'Nothing') {
+				return _List_fromArray(
+					[$author$project$Automaton$Validate$StartMissing]);
+			} else {
+				var s = _v0.a;
+				return A2($elm$core$Set$member, s, stateSet) ? _List_Nil : _List_fromArray(
+					[$author$project$Automaton$Validate$StartNotInStates]);
+			}
+		}(),
+		_Utils_ap(
+			$elm$core$List$isEmpty(badAcc) ? _List_Nil : _List_fromArray(
+				[
+					$author$project$Automaton$Validate$AcceptingNotInStates(badAcc)
+				]),
+			_Utils_ap(
+				$elm$core$List$isEmpty(badSym) ? _List_Nil : _List_fromArray(
+					[
+						$author$project$Automaton$Validate$SymbolsOutsideAlphabet(badSym)
+					]),
+				$elm$core$List$isEmpty(badTransitionStates) ? _List_Nil : _List_fromArray(
+					[
+						$author$project$Automaton$Validate$TransitionStatesNotInStates(badTransitionStates)
+					]))));
+};
+var $author$project$Main$guardValid = F3(
+	function (actionLabel, automaton, model) {
+		var stoppedModel = $author$project$Main$stopAutoplay(model);
+		var errs = $author$project$Automaton$Validate$validate(automaton);
+		return $elm$core$List$isEmpty(errs) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(
+			_Utils_update(
+				stoppedModel,
+				{
+					msgInfo: A2($author$project$Main$invalidAutomatonMessage, actionLabel, errs)
+				}));
+	});
+var $author$project$Main$guardValidDeterministic = F3(
+	function (actionLabel, automaton, model) {
+		var _v0 = A3($author$project$Main$guardValid, actionLabel, automaton, model);
+		if (_v0.$ === 'Just') {
+			var invalidModel = _v0.a;
+			return $elm$core$Maybe$Just(invalidModel);
+		} else {
+			return A3($author$project$Main$guardDeterministic, actionLabel, automaton, model);
+		}
+	});
+var $author$project$Main$GuideConversionTab = {$: 'GuideConversionTab'};
+var $author$project$Main$GuideSimulationTab = {$: 'GuideSimulationTab'};
+var $author$project$Main$guideTabForAppTab = function (tab) {
+	switch (tab.$) {
+		case 'EditorTab':
+			return $author$project$Main$GuideEditorTab;
+		case 'AlgorithmsTab':
+			return $author$project$Main$GuideConversionTab;
+		default:
+			return $author$project$Main$GuideSimulationTab;
+	}
+};
 var $elm$core$List$head = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -7312,16 +7479,16 @@ var $author$project$Algorithms$Minimize$minimize = function (a0) {
 								A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, parts)))));
 			});
 		var aReachable = $author$project$Algorithms$Minimize$removeUnreachable(a0);
-		var usedSyms = $elm$core$Set$toList(
+		var syms = $elm$core$List$isEmpty(aReachable.alphabet) ? $elm$core$Set$toList(
 			$elm$core$Set$fromList(
 				A2(
 					$elm$core$List$map,
 					function ($) {
 						return $.symbol;
 					},
-					aReachable.transitions)));
-		var syms = usedSyms;
-		var a = A2($author$project$Algorithms$Minimize$totalizeWithSymbols, usedSyms, aReachable);
+					aReachable.transitions))) : $elm$core$Set$toList(
+			$elm$core$Set$fromList(aReachable.alphabet));
+		var a = A2($author$project$Algorithms$Minimize$totalizeWithSymbols, syms, aReachable);
 		var acceptingSet = $elm$core$Set$fromList(a.accepting);
 		var delta = F2(
 			function (s, sym) {
@@ -7508,7 +7675,7 @@ var $author$project$Algorithms$Subset$nfaToDfa = function (a) {
 				return $elm$core$Set$fromList(
 					A2(
 						$elm$core$List$concatMap,
-						function (s) {
+						function (stateId) {
 							return A2(
 								$elm$core$List$map,
 								function ($) {
@@ -7517,7 +7684,7 @@ var $author$project$Algorithms$Subset$nfaToDfa = function (a) {
 								A2(
 									$elm$core$List$filter,
 									function (t) {
-										return _Utils_eq(t.from, s) && _Utils_eq(t.symbol, sym);
+										return _Utils_eq(t.from, stateId) && _Utils_eq(t.symbol, sym);
 									},
 									a.transitions));
 						},
@@ -7534,6 +7701,31 @@ var $author$project$Algorithms$Subset$nfaToDfa = function (a) {
 						$elm$core$Set$toList(ss))));
 		};
 		var startKey = keyOf(startSet);
+		var initSt = {
+			nid: 1,
+			qs: _List_fromArray(
+				[startSet]),
+			se: $elm$core$Dict$fromList(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(startKey, 0)
+					])),
+			sets: $elm$core$Dict$fromList(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(startKey, startSet)
+					])),
+			tr: _List_Nil
+		};
+		var alphabet = $elm$core$List$isEmpty(a.alphabet) ? $elm$core$Set$toList(
+			$elm$core$Set$fromList(
+				A2(
+					$elm$core$List$map,
+					function ($) {
+						return $.symbol;
+					},
+					a.transitions))) : $elm$core$Set$toList(
+			$elm$core$Set$fromList(a.alphabet));
 		var step = function (st) {
 			step:
 			while (true) {
@@ -7553,76 +7745,55 @@ var $author$project$Algorithms$Subset$nfaToDfa = function (a) {
 					var foldSym = F2(
 						function (sym, acc) {
 							var dest = A2(move, sset, sym);
-							if ($elm$core$Set$isEmpty(dest)) {
-								return acc;
-							} else {
-								var k = keyOf(dest);
-								var _v2 = A2($elm$core$Dict$get, k, acc.se);
-								if (_v2.$ === 'Just') {
-									var did = _v2.a;
-									return _Utils_update(
-										acc,
-										{
-											sets: A3($elm$core$Dict$insert, k, dest, acc.sets),
-											tr: A2(
-												$elm$core$List$cons,
-												{from: sid, symbol: sym, to_: did},
-												acc.tr)
-										});
-								} else {
-									var did = acc.nid;
-									return {
-										nid: acc.nid + 1,
-										qs: A2($elm$core$List$cons, dest, acc.qs),
-										se: A3($elm$core$Dict$insert, k, did, acc.se),
-										sets: A3($elm$core$Dict$insert, k, dest, acc.sets),
+							var key = keyOf(dest);
+							var _v2 = A2($elm$core$Dict$get, key, acc.se);
+							if (_v2.$ === 'Just') {
+								var did = _v2.a;
+								return _Utils_update(
+									acc,
+									{
+										sets: A3($elm$core$Dict$insert, key, dest, acc.sets),
 										tr: A2(
 											$elm$core$List$cons,
 											{from: sid, symbol: sym, to_: did},
 											acc.tr)
-									};
-								}
+									});
+							} else {
+								var did = acc.nid;
+								return {
+									nid: acc.nid + 1,
+									qs: A2($elm$core$List$cons, dest, acc.qs),
+									se: A3($elm$core$Dict$insert, key, did, acc.se),
+									sets: A3($elm$core$Dict$insert, key, dest, acc.sets),
+									tr: A2(
+										$elm$core$List$cons,
+										{from: sid, symbol: sym, to_: did},
+										acc.tr)
+								};
 							}
 						});
 					var acc2 = A3(
 						$elm$core$List$foldl,
 						foldSym,
 						{nid: st.nid, qs: rest, se: st.se, sets: st.sets, tr: st.tr},
-						a.alphabet);
-					var st2 = {nid: acc2.nid, qs: acc2.qs, se: acc2.se, sets: acc2.sets, tr: acc2.tr};
-					var $temp$st = st2;
+						alphabet);
+					var $temp$st = acc2;
 					st = $temp$st;
 					continue step;
 				}
 			}
-		};
-		var initSt = {
-			nid: 1,
-			qs: _List_fromArray(
-				[startSet]),
-			se: $elm$core$Dict$fromList(
-				_List_fromArray(
-					[
-						_Utils_Tuple2(startKey, 0)
-					])),
-			sets: $elm$core$Dict$fromList(
-				_List_fromArray(
-					[
-						_Utils_Tuple2(startKey, startSet)
-					])),
-			tr: _List_Nil
 		};
 		var _final = step(initSt);
 		var statesList = A2($elm$core$List$range, 0, _final.nid - 1);
 		var acceptingList = A2(
 			$elm$core$List$filterMap,
 			function (_v3) {
-				var k = _v3.a;
+				var key = _v3.a;
 				var sset = _v3.b;
 				var sid = A2(
 					$elm$core$Maybe$withDefault,
 					-1,
-					A2($elm$core$Dict$get, k, _final.se));
+					A2($elm$core$Dict$get, key, _final.se));
 				var inter = A2(
 					$elm$core$Set$intersect,
 					sset,
@@ -7630,13 +7801,12 @@ var $author$project$Algorithms$Subset$nfaToDfa = function (a) {
 				return $elm$core$Set$isEmpty(inter) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(sid);
 			},
 			$elm$core$Dict$toList(_final.sets));
-		var resultStates = statesList;
 		return {
 			accepting: acceptingList,
-			alphabet: a.alphabet,
-			positions: $author$project$Automaton$Core$defaultPositions(resultStates),
+			alphabet: alphabet,
+			positions: $author$project$Automaton$Core$defaultPositions(statesList),
 			start: $elm$core$Maybe$Just(0),
-			states: resultStates,
+			states: statesList,
 			transitions: $elm$core$List$reverse(_final.tr)
 		};
 	}
@@ -7683,48 +7853,6 @@ var $author$project$Editor$Update$redo = function (h) {
 		};
 	} else {
 		return h;
-	}
-};
-var $author$project$Main$renderErrors = function (errs) {
-	if (!errs.b) {
-		return '';
-	} else {
-		return A2(
-			$elm$core$String$join,
-			' | ',
-			A2(
-				$elm$core$List$map,
-				function (e) {
-					switch (e.$) {
-						case 'StartMissing':
-							return 'Chyba startovaci stav.';
-						case 'StartNotInStates':
-							return 'Startovaci stav nie je v mnozine states.';
-						case 'AcceptingNotInStates':
-							var xs = e.a;
-							return 'Akceptacne stavy mimo states: ' + A2(
-								$elm$core$String$join,
-								', ',
-								A2($elm$core$List$map, $elm$core$String$fromInt, xs));
-						case 'SymbolsOutsideAlphabet':
-							var syms = e.a;
-							return 'Symboly mimo abecedy: ' + A2($elm$core$String$join, ', ', syms);
-						default:
-							var pairs = e.a;
-							return 'Prechody odkazuju na neexistujuce stavy: ' + A2(
-								$elm$core$String$join,
-								', ',
-								A2(
-									$elm$core$List$map,
-									function (_v2) {
-										var fromState = _v2.a;
-										var toState = _v2.b;
-										return '(' + ($elm$core$String$fromInt(fromState) + (' -> ' + ($elm$core$String$fromInt(toState) + ')')));
-									},
-									pairs));
-					}
-				},
-				errs));
 	}
 };
 var $author$project$Main$simulationFinished = function (simulation) {
@@ -7920,81 +8048,6 @@ var $author$project$Algorithms$Operations$union = F2(
 			a0,
 			b0);
 	});
-var $author$project$Automaton$Validate$AcceptingNotInStates = function (a) {
-	return {$: 'AcceptingNotInStates', a: a};
-};
-var $author$project$Automaton$Validate$StartMissing = {$: 'StartMissing'};
-var $author$project$Automaton$Validate$StartNotInStates = {$: 'StartNotInStates'};
-var $author$project$Automaton$Validate$SymbolsOutsideAlphabet = function (a) {
-	return {$: 'SymbolsOutsideAlphabet', a: a};
-};
-var $author$project$Automaton$Validate$TransitionStatesNotInStates = function (a) {
-	return {$: 'TransitionStatesNotInStates', a: a};
-};
-var $author$project$Automaton$Validate$validate = function (a) {
-	var stateSet = $elm$core$Set$fromList(a.states);
-	var badTransitionStates = $elm$core$Set$toList(
-		$elm$core$Set$fromList(
-			A2(
-				$elm$core$List$map,
-				function (t) {
-					return _Utils_Tuple2(t.from, t.to_);
-				},
-				A2(
-					$elm$core$List$filter,
-					function (t) {
-						return (!A2($elm$core$Set$member, t.from, stateSet)) || (!A2($elm$core$Set$member, t.to_, stateSet));
-					},
-					a.transitions))));
-	var badAcc = $elm$core$Set$toList(
-		$elm$core$Set$fromList(
-			A2(
-				$elm$core$List$filter,
-				function (s) {
-					return !A2($elm$core$Set$member, s, stateSet);
-				},
-				a.accepting)));
-	var alphabetSet = $elm$core$Set$fromList(a.alphabet);
-	var badSym = $elm$core$Set$toList(
-		$elm$core$Set$fromList(
-			A2(
-				$elm$core$List$map,
-				function ($) {
-					return $.symbol;
-				},
-				A2(
-					$elm$core$List$filter,
-					function (t) {
-						return !A2($elm$core$Set$member, t.symbol, alphabetSet);
-					},
-					a.transitions))));
-	return _Utils_ap(
-		function () {
-			var _v0 = a.start;
-			if (_v0.$ === 'Nothing') {
-				return _List_fromArray(
-					[$author$project$Automaton$Validate$StartMissing]);
-			} else {
-				var s = _v0.a;
-				return A2($elm$core$Set$member, s, stateSet) ? _List_Nil : _List_fromArray(
-					[$author$project$Automaton$Validate$StartNotInStates]);
-			}
-		}(),
-		_Utils_ap(
-			$elm$core$List$isEmpty(badAcc) ? _List_Nil : _List_fromArray(
-				[
-					$author$project$Automaton$Validate$AcceptingNotInStates(badAcc)
-				]),
-			_Utils_ap(
-				$elm$core$List$isEmpty(badSym) ? _List_Nil : _List_fromArray(
-					[
-						$author$project$Automaton$Validate$SymbolsOutsideAlphabet(badSym)
-					]),
-				$elm$core$List$isEmpty(badTransitionStates) ? _List_Nil : _List_fromArray(
-					[
-						$author$project$Automaton$Validate$TransitionStatesNotInStates(badTransitionStates)
-					]))));
-};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		update:
@@ -8016,13 +8069,32 @@ var $author$project$Main$update = F2(
 						model,
 						{algorithmsSubTab: subTab});
 				case 'ToggleGuide':
-					return _Utils_update(
+					return model.guideOpen ? _Utils_update(
 						model,
-						{guideOpen: !model.guideOpen});
+						{guideOpen: false}) : _Utils_update(
+						model,
+						{
+							guideOpen: true,
+							guideTab: $author$project$Main$guideTabForAppTab(model.selectedTab)
+						});
 				case 'CloseGuide':
 					return _Utils_update(
 						model,
 						{guideOpen: false});
+				case 'SelectGuideTab':
+					var guideTab = msg.a;
+					return _Utils_update(
+						model,
+						{guideTab: guideTab});
+				case 'CloseGuideAndSelectTab':
+					var tab = msg.a;
+					return _Utils_update(
+						model,
+						{
+							guideOpen: false,
+							guideTab: $author$project$Main$guideTabForAppTab(tab),
+							selectedTab: tab
+						});
 				case 'Editor':
 					var eMsg = msg.a;
 					var tmpAutomaton = A2($author$project$Editor$Update$apply, eMsg, model.history.present);
@@ -8231,16 +8303,27 @@ var $author$project$Main$update = F2(
 				case 'PickJsonFile':
 					return _Utils_update(
 						model,
-						{msgInfo: 'Vyber JSON subor na import.'});
-				case 'JsonFileLoaded':
-					var fileContent = msg.a;
+						{jsonFileTarget: $author$project$Main$MainImportFile, msgInfo: 'Vyber JSON subor na import.'});
+				case 'PickOtherJsonFile':
 					return _Utils_update(
 						model,
-						{importText: fileContent, msgInfo: 'Obsah JSON suboru bol nacitany.'});
+						{jsonFileTarget: $author$project$Main$OtherAutomatonFile, msgInfo: 'Vyber JSON subor pre druhy automat.'});
+				case 'JsonFileLoaded':
+					var fileContent = msg.a;
+					var _v5 = model.jsonFileTarget;
+					if (_v5.$ === 'MainImportFile') {
+						return _Utils_update(
+							model,
+							{importText: fileContent, jsonFileTarget: $author$project$Main$MainImportFile, msgInfo: 'Obsah JSON suboru bol nacitany.'});
+					} else {
+						return _Utils_update(
+							model,
+							{jsonFileTarget: $author$project$Main$MainImportFile, msgInfo: 'Druhy automat bol nacitany zo suboru.', otherText: fileContent});
+					}
 				case 'ImportJson':
-					var _v5 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.importText);
-					if (_v5.$ === 'Ok') {
-						var automaton = _v5.a;
+					var _v6 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.importText);
+					if (_v6.$ === 'Ok') {
+						var automaton = _v6.a;
 						var enriched = $author$project$Main$ensureAlphabetCoverage(automaton);
 						var errs = $author$project$Automaton$Validate$validate(enriched);
 						var hist = A2($author$project$Editor$Update$push, enriched, model.history);
@@ -8257,7 +8340,7 @@ var $author$project$Main$update = F2(
 								msgInfo: 'Import obsahuje chyby: ' + $author$project$Main$renderErrors(errs)
 							});
 					} else {
-						var e = _v5.a;
+						var e = _v6.a;
 						return _Utils_update(
 							model,
 							{
@@ -8270,20 +8353,26 @@ var $author$project$Main$update = F2(
 						model,
 						{otherText: s});
 				case 'NfaToDfa':
-					var dfa = $author$project$Main$ensureAlphabetCoverage(
-						$author$project$Algorithms$Subset$nfaToDfa(model.history.present));
-					var hist = A2($author$project$Editor$Update$push, dfa, model.history);
-					return _Utils_update(
-						model,
-						{
-							history: hist,
-							msgInfo: 'Subset construction hotova.',
-							simulation: A2($author$project$Main$resetSimulation, dfa, model.inputWord)
-						});
+					var _v7 = A3($author$project$Main$guardValid, 'NFA -> DFA', model.history.present, model);
+					if (_v7.$ === 'Just') {
+						var guardedModel = _v7.a;
+						return guardedModel;
+					} else {
+						var dfa = $author$project$Main$ensureAlphabetCoverage(
+							$author$project$Algorithms$Subset$nfaToDfa(model.history.present));
+						var hist = A2($author$project$Editor$Update$push, dfa, model.history);
+						return _Utils_update(
+							model,
+							{
+								history: hist,
+								msgInfo: 'Subset construction hotova.',
+								simulation: A2($author$project$Main$resetSimulation, dfa, model.inputWord)
+							});
+					}
 				case 'MinimizeDfa':
-					var _v6 = A3($author$project$Main$guardDeterministic, 'Minimalizacia', model.history.present, model);
-					if (_v6.$ === 'Just') {
-						var guardedModel = _v6.a;
+					var _v8 = A3($author$project$Main$guardValidDeterministic, 'Minimalizacia', model.history.present, model);
+					if (_v8.$ === 'Just') {
+						var guardedModel = _v8.a;
 						return guardedModel;
 					} else {
 						var mini = $author$project$Main$ensureAlphabetCoverage(
@@ -8298,9 +8387,9 @@ var $author$project$Main$update = F2(
 							});
 					}
 				case 'ComplementDfa':
-					var _v7 = A3($author$project$Main$guardDeterministic, 'Komplement', model.history.present, model);
-					if (_v7.$ === 'Just') {
-						var guardedModel = _v7.a;
+					var _v9 = A3($author$project$Main$guardValidDeterministic, 'Komplement', model.history.present, model);
+					if (_v9.$ === 'Just') {
+						var guardedModel = _v9.a;
 						return guardedModel;
 					} else {
 						var comp = $author$project$Main$ensureAlphabetCoverage(
@@ -8315,30 +8404,34 @@ var $author$project$Main$update = F2(
 							});
 					}
 				case 'UnionWithOther':
-					var _v8 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
-					if (_v8.$ === 'Ok') {
-						var b = _v8.a;
-						if ($author$project$Automaton$Validate$isDeterministic(model.history.present) && $author$project$Automaton$Validate$isDeterministic(b)) {
-							var u = $author$project$Main$ensureAlphabetCoverage(
-								A2($author$project$Algorithms$Operations$union, model.history.present, b));
-							var hist = A2($author$project$Editor$Update$push, u, model.history);
-							return _Utils_update(
-								model,
-								{
-									history: hist,
-									msgInfo: 'Zjednotenie A U B je hotove.',
-									otherText: '',
-									simulation: A2($author$project$Main$resetSimulation, u, model.inputWord)
-								});
+					var _v10 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
+					if (_v10.$ === 'Ok') {
+						var b = _v10.a;
+						var _v11 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', model.history.present, model);
+						if (_v11.$ === 'Just') {
+							var guardedModel = _v11.a;
+							return guardedModel;
 						} else {
-							return _Utils_update(
-								model,
-								{
-									msgInfo: $author$project$Main$dfaOnlyMessage('Zjednotenie')
-								});
+							var _v12 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', b, model);
+							if (_v12.$ === 'Just') {
+								var guardedModel = _v12.a;
+								return guardedModel;
+							} else {
+								var u = $author$project$Main$ensureAlphabetCoverage(
+									A2($author$project$Algorithms$Operations$union, model.history.present, b));
+								var hist = A2($author$project$Editor$Update$push, u, model.history);
+								return _Utils_update(
+									model,
+									{
+										history: hist,
+										msgInfo: 'Zjednotenie A U B je hotove.',
+										otherText: '',
+										simulation: A2($author$project$Main$resetSimulation, u, model.inputWord)
+									});
+							}
 						}
 					} else {
-						var e = _v8.a;
+						var e = _v10.a;
 						return _Utils_update(
 							model,
 							{
@@ -8346,30 +8439,34 @@ var $author$project$Main$update = F2(
 							});
 					}
 				case 'IntersectWithOther':
-					var _v9 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
-					if (_v9.$ === 'Ok') {
-						var b = _v9.a;
-						if ($author$project$Automaton$Validate$isDeterministic(model.history.present) && $author$project$Automaton$Validate$isDeterministic(b)) {
-							var i = $author$project$Main$ensureAlphabetCoverage(
-								A2($author$project$Algorithms$Operations$intersection, model.history.present, b));
-							var hist = A2($author$project$Editor$Update$push, i, model.history);
-							return _Utils_update(
-								model,
-								{
-									history: hist,
-									msgInfo: 'Prienik A n B je hotovy.',
-									otherText: '',
-									simulation: A2($author$project$Main$resetSimulation, i, model.inputWord)
-								});
+					var _v13 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
+					if (_v13.$ === 'Ok') {
+						var b = _v13.a;
+						var _v14 = A3($author$project$Main$guardValidDeterministic, 'Prienik', model.history.present, model);
+						if (_v14.$ === 'Just') {
+							var guardedModel = _v14.a;
+							return guardedModel;
 						} else {
-							return _Utils_update(
-								model,
-								{
-									msgInfo: $author$project$Main$dfaOnlyMessage('Prienik')
-								});
+							var _v15 = A3($author$project$Main$guardValidDeterministic, 'Prienik', b, model);
+							if (_v15.$ === 'Just') {
+								var guardedModel = _v15.a;
+								return guardedModel;
+							} else {
+								var i = $author$project$Main$ensureAlphabetCoverage(
+									A2($author$project$Algorithms$Operations$intersection, model.history.present, b));
+								var hist = A2($author$project$Editor$Update$push, i, model.history);
+								return _Utils_update(
+									model,
+									{
+										history: hist,
+										msgInfo: 'Prienik A n B je hotovy.',
+										otherText: '',
+										simulation: A2($author$project$Main$resetSimulation, i, model.inputWord)
+									});
+							}
 						}
 					} else {
-						var e = _v9.a;
+						var e = _v13.a;
 						return _Utils_update(
 							model,
 							{
@@ -8401,9 +8498,9 @@ var $author$project$Main$update = F2(
 						case 'Drag':
 							var clientX = graphMsg.a;
 							var clientY = graphMsg.b;
-							var _v11 = model.dragState.dragging;
-							if (_v11.$ === 'Just') {
-								var stateId = _v11.a;
+							var _v17 = model.dragState.dragging;
+							if (_v17.$ === 'Just') {
+								var stateId = _v17.a;
 								var newY = A3($elm$core$Basics$clamp, 48, 792, clientY - model.dragState.offsetY);
 								var newX = A3($elm$core$Basics$clamp, 48, 1172, clientX - model.dragState.offsetX);
 								var updatedAutomaton = A2(
@@ -8418,9 +8515,9 @@ var $author$project$Main$update = F2(
 								return model;
 							}
 						case 'EndDrag':
-							var _v12 = model.dragState.original;
-							if (_v12.$ === 'Just') {
-								var oldAutomaton = _v12.a;
+							var _v18 = model.dragState.original;
+							if (_v18.$ === 'Just') {
+								var oldAutomaton = _v18.a;
 								return _Utils_update(
 									model,
 									{
@@ -8457,7 +8554,60 @@ var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$CloseGuide = {$: 'CloseGuide'};
+var $author$project$Main$CloseGuideAndSelectTab = function (a) {
+	return {$: 'CloseGuideAndSelectTab', a: a};
+};
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $author$project$Main$AlgorithmsTab = {$: 'AlgorithmsTab'};
+var $author$project$Main$SimulationTab = {$: 'SimulationTab'};
+var $author$project$Main$guidePrimaryAppTab = function (guideTab) {
+	switch (guideTab.$) {
+		case 'GuideEditorTab':
+			return $author$project$Main$EditorTab;
+		case 'GuideSimulationTab':
+			return $author$project$Main$SimulationTab;
+		case 'GuideConversionTab':
+			return $author$project$Main$AlgorithmsTab;
+		case 'GuideDataTab':
+			return $author$project$Main$AlgorithmsTab;
+		case 'GuideErrorsTab':
+			return $author$project$Main$EditorTab;
+		default:
+			return $author$project$Main$EditorTab;
+	}
+};
+var $author$project$Main$guidePrimaryActionLabel = function (guideTab) {
+	var _v0 = $author$project$Main$guidePrimaryAppTab(guideTab);
+	switch (_v0.$) {
+		case 'EditorTab':
+			return 'Prejst do editora';
+		case 'AlgorithmsTab':
+			return 'Prejst do algoritmov';
+		default:
+			return 'Prejst do simulacie';
+	}
+};
+var $author$project$Main$guideTabSubtitle = function (guideTab) {
+	switch (guideTab.$) {
+		case 'GuideEditorTab':
+			return 'Prakticky navod na budovanie stavov, prechodov a upravu grafu priamo na platne.';
+		case 'GuideSimulationTab':
+			return 'Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu.';
+		case 'GuideConversionTab':
+			return '';
+		case 'GuideDataTab':
+			return 'Import, export, JSON format a praca s druhym automatom pri mnozinovych operaciach.';
+		case 'GuideErrorsTab':
+			return 'Najcastejsie validacne problemy a co presne znamenaju pri tvorbe alebo importe automatu.';
+		default:
+			return 'Ako je appka poskladana, co uklada a ake ma aktualne limity.';
+	}
+};
+var $author$project$Main$GuideDataTab = {$: 'GuideDataTab'};
+var $author$project$Main$GuideErrorsTab = {$: 'GuideErrorsTab'};
+var $author$project$Main$GuideProjectTab = {$: 'GuideProjectTab'};
+var $author$project$Main$guideTabs = _List_fromArray(
+	[$author$project$Main$GuideEditorTab, $author$project$Main$GuideSimulationTab, $author$project$Main$GuideConversionTab, $author$project$Main$GuideDataTab, $author$project$Main$GuideErrorsTab, $author$project$Main$GuideProjectTab]);
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$i = _VirtualDom_node('i');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
@@ -8479,8 +8629,150 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
-var $elm$html$Html$code = _VirtualDom_node('code');
+var $author$project$Main$SelectGuideTab = function (a) {
+	return {$: 'SelectGuideTab', a: a};
+};
+var $author$project$Main$guideTabIcon = function (guideTab) {
+	switch (guideTab.$) {
+		case 'GuideEditorTab':
+			return 'fas fa-pen-ruler';
+		case 'GuideSimulationTab':
+			return 'fas fa-play';
+		case 'GuideConversionTab':
+			return 'fas fa-code-branch';
+		case 'GuideDataTab':
+			return 'fas fa-file-code';
+		case 'GuideErrorsTab':
+			return 'fas fa-triangle-exclamation';
+		default:
+			return 'fas fa-circle-info';
+	}
+};
+var $author$project$Main$guideTabTitle = function (guideTab) {
+	switch (guideTab.$) {
+		case 'GuideEditorTab':
+			return 'Editor';
+		case 'GuideSimulationTab':
+			return 'Simulator';
+		case 'GuideConversionTab':
+			return 'Konverzia NFA -> DFA';
+		case 'GuideDataTab':
+			return 'JSON a export';
+		case 'GuideErrorsTab':
+			return 'Chybove spravy';
+		default:
+			return 'O projekte';
+	}
+};
+var $author$project$Main$viewGuideTabButton = F2(
+	function (activeTab, tab) {
+		var isActive = _Utils_eq(activeTab, tab);
+		return A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class(
+					'inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-200 ' + (isActive ? 'bg-[#e6a95f] text-[#1b120e] shadow-lg shadow-amber-900/25' : 'text-[#d8c1aa] hover:bg-[#241b16] hover:text-[#f3e4d2]')),
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$SelectGuideTab(tab))
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$i,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class(
+							$author$project$Main$guideTabIcon(tab))
+						]),
+					_List_Nil),
+					$elm$html$Html$text(
+					$author$project$Main$guideTabTitle(tab))
+				]));
+	});
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $author$project$Main$viewGuideActionRow = function (_v0) {
+	var labelText = _v0.a;
+	var descriptionText = _v0.b;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('grid gap-2 px-5 py-4 md:grid-cols-[240px,1fr] md:gap-6 md:px-6')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f1deca]')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(labelText)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-sm leading-7 text-[#c9b29a]')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(descriptionText)
+					]))
+			]));
+};
+var $author$project$Main$viewGuideActionTable = F3(
+	function (titleText, subtitleText, rows) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('overflow-hidden rounded-[28px] border border-[#45352b] bg-[#16110f]/92 shadow-xl shadow-black/10')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('border-b border-[#34271f] px-5 py-5')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h3,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-lg font-bold text-[#f5ede3]')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(titleText)
+								])),
+							A2(
+							$elm$html$Html$p,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#bca48d]')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(subtitleText)
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('divide-y divide-[#2f241d]')
+						]),
+					A2($elm$core$List$map, $author$project$Main$viewGuideActionRow, rows))
+				]));
+	});
+var $elm$html$Html$code = _VirtualDom_node('code');
 var $elm$html$Html$pre = _VirtualDom_node('pre');
 var $author$project$Main$viewGuideCodeBlock = F2(
 	function (titleText, codeText) {
@@ -8488,7 +8780,7 @@ var $author$project$Main$viewGuideCodeBlock = F2(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10')
+					$elm$html$Html$Attributes$class('rounded-[28px] border border-[#45352b] bg-[#16110f]/92 p-5 shadow-xl shadow-black/10')
 				]),
 			_List_fromArray(
 				[
@@ -8496,7 +8788,7 @@ var $author$project$Main$viewGuideCodeBlock = F2(
 					$elm$html$Html$h3,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('text-base font-bold text-[#f5ede3]')
+							$elm$html$Html$Attributes$class('text-lg font-bold text-[#f5ede3]')
 						]),
 					_List_fromArray(
 						[
@@ -8506,7 +8798,7 @@ var $author$project$Main$viewGuideCodeBlock = F2(
 					$elm$html$Html$pre,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('mt-3 overflow-x-auto rounded-2xl border border-[#3a2c23] bg-[#120f0d]/90 p-4 text-xs leading-6 text-[#f3e4d2]')
+							$elm$html$Html$Attributes$class('mt-4 overflow-x-auto rounded-3xl border border-[#3a2c23] bg-[#120f0d]/95 p-5 text-xs leading-7 text-[#f3e4d2]')
 						]),
 					_List_fromArray(
 						[
@@ -8520,13 +8812,47 @@ var $author$project$Main$viewGuideCodeBlock = F2(
 						]))
 				]));
 	});
-var $author$project$Main$viewGuideSection = F2(
-	function (titleText, items) {
+var $elm$html$Html$h4 = _VirtualDom_node('h4');
+var $author$project$Main$viewGuideInfoCard = function (_v0) {
+	var titleText = _v0.a;
+	var descriptionText = _v0.b;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('rounded-3xl border border-[#3a2c23] bg-[#120f0d]/88 p-4')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h4,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(titleText)
+					])),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('mt-2 text-sm leading-7 text-[#c9b29a]')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(descriptionText)
+					]))
+			]));
+};
+var $author$project$Main$viewGuideInfoGrid = F3(
+	function (titleText, subtitleText, entries) {
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4 shadow-xl shadow-black/10')
+					$elm$html$Html$Attributes$class('rounded-[28px] border border-[#45352b] bg-[#16110f]/92 p-5 shadow-xl shadow-black/10')
 				]),
 			_List_fromArray(
 				[
@@ -8534,48 +8860,51 @@ var $author$project$Main$viewGuideSection = F2(
 					$elm$html$Html$h3,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('text-base font-bold text-[#f5ede3]')
+							$elm$html$Html$Attributes$class('text-lg font-bold text-[#f5ede3]')
 						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text(titleText)
 						])),
 					A2(
+					$elm$html$Html$p,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#bca48d]')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(subtitleText)
+						])),
+					A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('mt-3 space-y-3 text-sm leading-6 text-[#d8c1aa]')
+							$elm$html$Html$Attributes$class('mt-4 grid gap-3 md:grid-cols-2')
 						]),
-					A2(
-						$elm$core$List$map,
-						function (item) {
-							return A2(
-								$elm$html$Html$p,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('rounded-2xl border border-[#3a2c23] bg-[#120f0d]/75 px-4 py-3')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(item)
-									]));
-						},
-						items))
+					A2($elm$core$List$map, $author$project$Main$viewGuideInfoCard, entries))
 				]));
 	});
-var $author$project$Main$viewGuideOverlay = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('fixed inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-sm')
-		]),
-	_List_fromArray(
-		[
-			A2(
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Main$viewGuideChip = function (chipText) {
+	return A2(
+		$elm$html$Html$span,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('rounded-full border border-[#5a4638] bg-[#1a1411]/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#e2c7a9]')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text(chipText)
+			]));
+};
+var $author$project$Main$viewGuideSummaryCard = F4(
+	function (icon, titleText, descriptionText, chips) {
+		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('flex h-full w-full max-w-[620px] flex-col border-l border-[#4b392d] bg-[#140f0d] shadow-2xl shadow-black/50')
+					$elm$html$Html$Attributes$class('rounded-[28px] border border-amber-500/15 bg-gradient-to-br from-[#261b15] via-[#1a1411] to-[#120f0d] p-6 shadow-xl shadow-black/20')
 				]),
 			_List_fromArray(
 				[
@@ -8583,20 +8912,23 @@ var $author$project$Main$viewGuideOverlay = A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('flex items-start justify-between gap-4 border-b border-[#3a2c23] px-6 py-5')
+							$elm$html$Html$Attributes$class('flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between')
 						]),
 					_List_fromArray(
 						[
 							A2(
 							$elm$html$Html$div,
-							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex items-start gap-4')
+								]),
 							_List_fromArray(
 								[
 									A2(
 									$elm$html$Html$div,
 									_List_fromArray(
 										[
-											$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300')
+											$elm$html$Html$Attributes$class('flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-amber-500/12 text-amber-200 ring-1 ring-amber-500/20')
 										]),
 									_List_fromArray(
 										[
@@ -8604,108 +8936,460 @@ var $author$project$Main$viewGuideOverlay = A2(
 											$elm$html$Html$i,
 											_List_fromArray(
 												[
-													$elm$html$Html$Attributes$class('fas fa-book-open')
+													$elm$html$Html$Attributes$class(icon + ' text-xl')
 												]),
-											_List_Nil),
-											$elm$html$Html$text('Guide')
+											_List_Nil)
 										])),
 									A2(
-									$elm$html$Html$h2,
+									$elm$html$Html$div,
+									_List_Nil,
 									_List_fromArray(
 										[
-											$elm$html$Html$Attributes$class('mt-4 text-2xl font-black text-[#f5ede3]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Navod k aplikacii')
-										])),
-									A2(
-									$elm$html$Html$p,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('mt-2 max-w-xl text-sm leading-6 text-[#c9b29a]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Toto okno popisuje, co v editore funguje, ako sa sprava simulacia, co ocakavaju algoritmy a aky JSON format vie aplikacia nacitat.')
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-2xl font-black text-[#f5ede3]')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(titleText)
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-2 max-w-3xl text-sm leading-7 text-[#ccb49b]')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(descriptionText)
+												]))
 										]))
 								])),
 							A2(
-							$elm$html$Html$button,
+							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2a201a] text-[#d8c1aa] transition hover:bg-[#76472c] hover:text-[#f7ead9]'),
-									$elm$html$Html$Events$onClick($author$project$Main$CloseGuide),
-									$elm$html$Html$Attributes$title('Zavriet guide')
+									$elm$html$Html$Attributes$class('flex flex-wrap gap-2')
 								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$i,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('fas fa-times')
-										]),
-									_List_Nil)
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex-1 space-y-4 overflow-y-auto px-6 py-6 scrollbar-thin')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$author$project$Main$viewGuideSection,
-							'1. Co je to za appku',
-							_List_fromArray(
-								['Aplikacia sluzi na tvorbu a upravu konecnych automatov, ich vizualizaciu v grafe a spustanie zakladnych algoritmov nad automatmi.', 'Automat tvoria stavy, prechody, startovaci stav, akceptacne stavy a pozicie uzlov na platne.', 'Kazda zmena v editore sa uklada do historie, preto mozes pouzivat Undo a Redo.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'2. Editor',
-							_List_fromArray(
-								['V zalozke Editor vies pridavat stavy, mazat ich, oznacovat akceptacne stavy a nastavit start.', 'Prechody sa vytvaraju vyberom stavu From, symbolu a cieloveho stavu To.', 'Pri zmazani stavu sa odstrania aj prechody, ktore do neho viedli alebo z neho vychadzali.', 'Stavy mozes presuvat mysou priamo na platne. Po pusteni sa nova pozicia ulozi do historie.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'3. DFA vs NFA',
-							_List_fromArray(
-								['Aplikacia povazuje automat za deterministicky, ak z jedneho stavu nevedu pre rovnaky symbol dve hrany do roznych cielov.', 'Ak sa take duplicity objavia, v spodnych statistikach uvidis upozornenie a automat je brany ako NFA.', 'NFA moze mat viac prechodov na ten isty symbol. Simulacia po krokoch a niektore algoritmy su ale dostupne iba pre DFA.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'4. Simulacia slova',
-							_List_fromArray(
-								['Zalozka Simulacia cita vstup po jednom symbole zlava doprava.', 'Tlacidlo Krok vykona presne jeden prechod. Tlacidlo Auto spusti prehravanie s nastavitelou rychlostou.', 'Vyhodnot hned pusti simulaciu az do konca bez krokovania.', 'Simulacia momentalne funguje iba pre DFA. Ak je automat NFA, appka ta najprv vyzve na prevod NFA -> DFA.', 'Ak pre aktualny stav a symbol neexistuje prechod, automat sa zasekne.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'5. Algoritmy',
-							_List_fromArray(
-								['NFA -> DFA robi subset construction. Aktualna implementacia nepodporuje epsilon prechody.', 'Minimalizacia je urcena pre DFA. Najprv odstrani nedosiahnutelne stavy, potom automat totalizuje a az potom robi partition refinement.', 'Komplement je urceny pre DFA. Chybajuce prechody sa predtym doplnia do sink stavu.', 'Zjednotenie a prienik pracuju nad dvoma DFA cez produktovu konstrukciu. Druhy automat treba vlozit ako JSON.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'6. Graf a vizualizacia',
-							_List_fromArray(
-								['Startovaci stav ma zvlastne oznacenie sipkou zlava.', 'Akceptacny stav ma dvojitu kruznicu.', 'Pri simulacii sa zvyrazni aktualny stav a posledny pouzity prechod.', 'Ak medzi dvoma stavmi existuje viac symbolov v tom istom smere, graf ich zoskupi do jedneho labelu.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'7. Import a export',
-							_List_fromArray(
-								['Automat vies exportovat ako JSON do textu v appke alebo do suboru.', 'Graf vies stiahnut aj ako SVG alebo PNG.', 'Import funguje bud vlozenim JSON textu, alebo vyberom JSON suboru z disku.', 'Ak importovany automat nema ulozene positions, appka stavy automaticky rozlozi na kruznicu.'])),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'8. Ako funguje abeceda',
-							_List_fromArray(
-								['Abeceda sa v appke priebezne doplna podla symbolov, ktore realne pouzijes v prechodoch.', 'To znamena, ze ked vytvoris prechod s novym symbolom, aplikacia ho zaradi do alphabet automaticky.', 'Pri mnozinovych operaciach sa pracuje s efektivnou abecedou oboch automatov dokopy.'])),
-							A2($author$project$Main$viewGuideCodeBlock, '9. JSON format', '{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}'),
-							A2(
-							$author$project$Main$viewGuideSection,
-							'10. Limity aktualnej verzie',
-							_List_fromArray(
-								['Simulacia slova, minimalizacia, komplement, zjednotenie a prienik ocakavaju DFA.', 'Prevod NFA -> DFA nepodporuje epsilon prechody.', 'Stavy sa identifikuju cislami a pri pridavani noveho stavu sa pouzije dalsie volne ID za aktualnym maximom.']))
+							A2($elm$core$List$map, $author$project$Main$viewGuideChip, chips))
 						]))
-				]))
-		]));
+				]));
+	});
+var $author$project$Main$viewGuideTabContent = function (guideTab) {
+	switch (guideTab.$) {
+		case 'GuideEditorTab':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-pen-ruler',
+						'Editor automatov',
+						'Panel Editor je urceny na tvorbu stavov, prechodov a upravu grafu s okamzitou vizualnou odozvou.',
+						_List_fromArray(
+							['Stavy', 'Prechody', 'Drag & drop', 'Undo / Redo'])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Praca so stavmi',
+						'Zakladne akcie pre stavovy diagram.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Pridanie stavu', 'V podkarte Stavy klikni na Pridat stav. Appka vytvori dalsie volne ID a vlozi novy uzol na platno.'),
+								_Utils_Tuple2('Startovaci stav', 'Hviezdicka nastavi vybrany stav ako jediny start automatu.'),
+								_Utils_Tuple2('Akceptacny stav', 'Fajka prepina akceptacny stav. V grafe ho spoznas podla dvojitej kruznice.'),
+								_Utils_Tuple2('Odstranenie stavu', 'Kos odstrani stav aj vsetky prechody, ktore do neho vedu alebo z neho vychadzaju.'),
+								_Utils_Tuple2('Presun na platne', 'Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie.')
+							])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Praca s prechodmi',
+						'Ako definovat jazyk automatu v editore.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Novy prechod', 'V podkarte Prechod zvol From, symbol a To. Hrana sa hned vykresli v diagrame.'),
+								_Utils_Tuple2('Symbol prechodu', 'Pole Symbol akceptuje lubovolny textovy symbol. Pouzite symboly sa doplnaju do abecedy.'),
+								_Utils_Tuple2('Zoznam prechodov', 'Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom.'),
+								_Utils_Tuple2('DFA vs NFA', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, automat je NFA a cast algoritmov sa zablokuje.')
+							]))
+					]));
+		case 'GuideSimulationTab':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-play',
+						'Simulator slova',
+						'Simulacia cita vstup zlava doprava po jednom symbole a synchronizuje pasku s grafom automatu.',
+						_List_fromArray(
+							['Krok', 'Auto', 'Vyhodnot hned', 'Tape'])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Ovladanie simulacie',
+						'Tri rozne sposoby behu nad jednym vstupom.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Vstupne slovo', 'Do pola zadas retazec, ktory sa rozbije na jednotlive symboly. Paska sa obnovi okamzite.'),
+								_Utils_Tuple2('Krok', 'Vykona presne jeden prechod a posunie citanie o jeden symbol.'),
+								_Utils_Tuple2('Auto', 'Spusti prehravanie s nastavitelou rychlostou Slow / Normal / Fast.'),
+								_Utils_Tuple2('Vyhodnot hned', 'Prebehne cely vstup bez medzikrokov.'),
+								_Utils_Tuple2('Reset', 'Vrati simulaciu na zaciatok a nastavi aktualny stav spat na start.')
+							])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Co uvidis v grafe',
+						'Vizualne napovedy pocas simulacie.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Aktualny stav', 'Zvyrazni sa ringom okolo uzla, aby bolo vidno, kde sa automat prave nachadza.'),
+								_Utils_Tuple2('Posledny prechod', 'Pouzita hrana aj jej label sa po kroku zvyraznia.'),
+								_Utils_Tuple2('Zaseknutie', 'Ak pre aktualny stav a symbol chyba prechod, simulacia sa zastavi na danom mieste.'),
+								_Utils_Tuple2('DFA obmedzenie', 'Krokovanie aj autoplay su urcene pre validny DFA.')
+							]))
+					]));
+		case 'GuideConversionTab':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-code-branch',
+						'Konverzia a algoritmy',
+						'Panel Algoritmy meni aktualny automat priamo na platne, preto sa hodi na analyzu aj formalne overovanie.',
+						_List_fromArray(
+							['NFA -> DFA', 'Minimalizacia', 'Komplement', 'Produkt'])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Dostupne algoritmy',
+						'Kazdy vysledok prepise aktualne platno.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('NFA -> DFA', 'Pouziva subset construction. Aktualna verzia nepodporuje epsilon prechody.'),
+								_Utils_Tuple2('Minimalizacia', 'Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy.'),
+								_Utils_Tuple2('Komplement', 'Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu.'),
+								_Utils_Tuple2('Zjednotenie a prienik', 'Nacita druhy automat z JSON a spravi produktovu konstrukciu nad spolocnou abecedou.')
+							])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Formalne podmienky',
+						'Predpoklady pre korektny vysledok.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Validny automat', 'Start musi existovat, accepting stavy musia byt v states a prechody mozu odkazovat len na existujuce stavy.'),
+								_Utils_Tuple2('Deterministicky vstup', 'Minimalizacia, komplement, zjednotenie, prienik aj simulacia ocakavaju validny DFA.'),
+								_Utils_Tuple2('Pouzita abeceda', 'Pri produktovych operaciach sa pracuje so spolocnou abecedou oboch automatov.')
+							]))
+					]));
+		case 'GuideDataTab':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-file-code',
+						'JSON, import a export',
+						'Automaty vies serializovat do JSON, nacitat zo suboru a exportovat aj samotny diagram.',
+						_List_fromArray(
+							['JSON text', 'JSON subor', 'SVG', 'PNG'])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Import / Export workflow',
+						'Vsetko, co potrebujes na prenos automatu.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Zobrazit JSON v appke', 'Vygeneruje serializovany vystup aktualneho automatu do textoveho pola.'),
+								_Utils_Tuple2('Stiahnut JSON subor', 'Pripravi a stiahne JSON subor aktualneho automatu.'),
+								_Utils_Tuple2('Import z textu', 'Vloz JSON do pola a klikni Importovat automat.'),
+								_Utils_Tuple2('Import zo suboru', 'Vybrat JSON subor nacita obsah z disku do importneho pola.'),
+								_Utils_Tuple2('Druhy automat', 'Pri A U B a A n B vies druhy automat vlozit ako text alebo vybrat ako subor.'),
+								_Utils_Tuple2('Export grafu', 'Diagram vies ulozit ako SVG aj PNG.')
+							])),
+						A3(
+						$author$project$Main$viewGuideInfoGrid,
+						'Co musi obsahovat JSON',
+						'Toto su casti, ktore appka cita pri importe.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('states', 'Zoznam identifikatorov stavov ako 0, 1, 2...'),
+								_Utils_Tuple2('alphabet', 'Zoznam symbolov abecedy.'),
+								_Utils_Tuple2('transitions', 'Pole prechodov tvaru { from, symbol, to }.'),
+								_Utils_Tuple2('start', 'Jediny startovaci stav.'),
+								_Utils_Tuple2('accepting', 'Zoznam akceptacnych stavov.'),
+								_Utils_Tuple2('positions', 'Suradnice uzlov na platne.')
+							])),
+						A2($author$project$Main$viewGuideCodeBlock, 'Priklad validneho JSON', '{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}')
+					]));
+		case 'GuideErrorsTab':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-triangle-exclamation',
+						'Chybove spravy a validacia',
+						'Pred algoritmami aj importom aplikacia kontroluje, ci je automat formalne konzistentny.',
+						_List_fromArray(
+							['Start', 'Accepting', 'Transitions', 'Determinism'])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Validacne chyby',
+						'Problemy na urovni dat automatu.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Chyba startovaci stav', 'Automat nema nastaveny start a neda sa korektne spustit.'),
+								_Utils_Tuple2('Start nie je v states', 'Start odkazuje na stav, ktory v mnozine states neexistuje.'),
+								_Utils_Tuple2('Akceptacne stavy mimo states', 'Niektory stav v poli accepting sa nenachadza v states.'),
+								_Utils_Tuple2('Prechody na neexistujuce stavy', 'Hrana odkazuje na stav, ktory nie je definovany.'),
+								_Utils_Tuple2('Symboly mimo abecedy', 'JSON obsahuje symboly, ktore nie su uvedene v alphabet.')
+							])),
+						A3(
+						$author$project$Main$viewGuideActionTable,
+						'Algoritmicke obmedzenia',
+						'Aj validny automat moze narazit na obmedzenie algoritmu.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('DFA only', 'Simulacia slova, minimalizacia, komplement, zjednotenie a prienik su urcene pre validny DFA.'),
+								_Utils_Tuple2('Nedeterministicke prechody', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, treba najprv spustit NFA -> DFA.'),
+								_Utils_Tuple2('Epsilon prechody', 'Subset construction v tejto verzii epsilon prechody nepodporuje.'),
+								_Utils_Tuple2('Neplatny JSON druheho automatu', 'Pri mnozinovych operaciach musi byt aj druhy automat v korektnom JSON formate.')
+							]))
+					]));
+		default:
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-5')
+					]),
+				_List_fromArray(
+					[
+						A4(
+						$author$project$Main$viewGuideSummaryCard,
+						'fas fa-circle-info',
+						'O projekte',
+						'Projekt je napisany v Elm a pouziva funkcionalny model aktualizacii, co je dobre pre bezpecne experimentovanie s automatmi.',
+						_List_fromArray(
+							['Elm', 'History', 'SVG graph', 'JSON codec'])),
+						A3(
+						$author$project$Main$viewGuideInfoGrid,
+						'Ako je appka poskladana',
+						'Strucny technicky prehlad.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('Datovy model', 'Automat tvoria stavy, abeceda, prechody, start, accepting a positions.'),
+								_Utils_Tuple2('Historia zmien', 'Editor uklada zmeny do undo/redo historie.'),
+								_Utils_Tuple2('Vizualizacia', 'Graf sa kresli ako SVG s loopmi, obojsmernymi hranami a zoskupenymi labelmi.'),
+								_Utils_Tuple2('Abeceda', 'Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly.')
+							])),
+						A3(
+						$author$project$Main$viewGuideInfoGrid,
+						'Aktualne limity',
+						'Dolezite poznamky pred odovzdanim.',
+						_List_fromArray(
+							[
+								_Utils_Tuple2('DFA operacie', 'Simulacia, minimalizacia, komplement, zjednotenie a prienik ocakavaju validny DFA.'),
+								_Utils_Tuple2('NFA -> DFA', 'Subset construction nepodporuje epsilon prechody.'),
+								_Utils_Tuple2('Prepis vysledku', 'Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export.'),
+								_Utils_Tuple2('Ciselne ID stavov', 'Stavy su identifikovane cislami a novy stav dostane dalsie volne ID.')
+							]))
+					]));
+	}
+};
+var $author$project$Main$viewGuideOverlay = function (model) {
+	var currentTab = model.guideTab;
+	var primaryTab = $author$project$Main$guidePrimaryAppTab(currentTab);
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('fixed inset-0 z-50 grid place-items-center bg-black/60 px-4 py-6 backdrop-blur-sm')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('flex max-h-[92vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[32px] border border-[#4a392f] bg-[#120f0d]/98 shadow-[0_28px_100px_rgba(0,0,0,0.5)]')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('border-b border-[#34271f] bg-gradient-to-r from-[#1b1512] via-[#171210] to-[#120f0d]')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex flex-col gap-4 px-6 py-6 lg:flex-row lg:items-start lg:justify-between')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('max-w-3xl')
+											]),
+										_Utils_ap(
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$div,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300')
+														]),
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$i,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('fas fa-book-open')
+																]),
+															_List_Nil),
+															$elm$html$Html$text('Sprievodca aplikaciou')
+														])),
+													A2(
+													$elm$html$Html$h2,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('mt-4 text-3xl font-black tracking-tight text-[#f5ede3]')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Guide')
+														]))
+												]),
+											$elm$core$String$isEmpty(
+												$author$project$Main$guideTabSubtitle(currentTab)) ? _List_Nil : _List_fromArray(
+												[
+													A2(
+													$elm$html$Html$p,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('mt-3 text-sm leading-7 text-[#cbb39a]')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$Main$guideTabSubtitle(currentTab))
+														]))
+												]))),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex items-center gap-3 self-start')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] px-4 py-3 text-sm font-semibold text-[#1b120e] shadow-lg shadow-amber-900/30 transition hover:brightness-110'),
+														$elm$html$Html$Events$onClick(
+														$author$project$Main$CloseGuideAndSelectTab(primaryTab))
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$i,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('fas fa-arrow-right')
+															]),
+														_List_Nil),
+														$elm$html$Html$text(
+														$author$project$Main$guidePrimaryActionLabel(currentTab))
+													])),
+												A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('flex h-11 w-11 items-center justify-center rounded-2xl bg-[#211914] text-[#d8c1aa] transition hover:bg-[#76472c] hover:text-[#f7ead9]'),
+														$elm$html$Html$Events$onClick($author$project$Main$CloseGuide),
+														$elm$html$Html$Attributes$title('Zavriet guide')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$i,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('fas fa-times')
+															]),
+														_List_Nil)
+													]))
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('overflow-x-auto border-t border-[#2b211b]')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex min-w-max gap-1 px-3 py-3')
+											]),
+										A2(
+											$elm$core$List$map,
+											$author$project$Main$viewGuideTabButton(currentTab),
+											$author$project$Main$guideTabs))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex-1 overflow-y-auto bg-[#15110f] px-6 py-6 scrollbar-thin')
+							]),
+						_List_fromArray(
+							[
+								$author$project$Main$viewGuideTabContent(currentTab)
+							]))
+					]))
+			]));
+};
 var $author$project$Main$Redo = {$: 'Redo'};
 var $author$project$Main$ToggleGuide = {$: 'ToggleGuide'};
 var $author$project$Main$Undo = {$: 'Undo'};
@@ -8715,7 +9399,6 @@ var $author$project$Main$showSimulationOverlay = function (model) {
 var $author$project$Main$graphHighlight = function (model) {
 	return $author$project$Main$showSimulationOverlay(model) ? {activeTransition: model.simulation.activeTransition, currentState: model.simulation.currentState} : {activeTransition: $elm$core$Maybe$Nothing, currentState: $elm$core$Maybe$Nothing};
 };
-var $elm$html$Html$h4 = _VirtualDom_node('h4');
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $elm$core$Basics$atan2 = _Basics_atan2;
@@ -9543,7 +10226,6 @@ var $author$project$View$Graph$view = F2(
 					A2($elm$core$List$map, node, a.states))
 				]));
 	});
-var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Main$viewTopStat = F4(
 	function (labelText, valueText, icon, subtitleText) {
 		return A2(
@@ -9957,8 +10639,6 @@ var $author$project$Main$viewMain = function (model) {
 					]))
 			]));
 };
-var $author$project$Main$AlgorithmsTab = {$: 'AlgorithmsTab'};
-var $author$project$Main$SimulationTab = {$: 'SimulationTab'};
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $author$project$Main$AlgoDataSub = {$: 'AlgoDataSub'};
 var $author$project$Main$AlgoProductSub = {$: 'AlgoProductSub'};
@@ -9978,6 +10658,7 @@ var $author$project$Main$OtherJsonChanged = function (a) {
 	return {$: 'OtherJsonChanged', a: a};
 };
 var $author$project$Main$PickJsonFile = {$: 'PickJsonFile'};
+var $author$project$Main$PickOtherJsonFile = {$: 'PickOtherJsonFile'};
 var $author$project$Main$SelectAlgorithmsSubTab = function (a) {
 	return {$: 'SelectAlgorithmsSubTab', a: a};
 };
@@ -10236,6 +10917,24 @@ var $author$project$Main$viewAlgorithmsPanel = function (model) {
 							'Vloz druhy automat v JSON a vytvor zjednotenie alebo prienik.',
 							_List_fromArray(
 								[
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+											$elm$html$Html$Events$onClick($author$project$Main$PickOtherJsonFile)
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$i,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('fas fa-folder-open mr-2')
+												]),
+											_List_Nil),
+											$elm$html$Html$text('Vybrat JSON subor druheho automatu')
+										])),
 									A2(
 									$elm$html$Html$textarea,
 									_List_fromArray(
@@ -10667,14 +11366,14 @@ var $author$project$Main$viewStateCard = F2(
 								[
 									A4(
 									$author$project$Main$viewIconButton,
-									isAccepting ? 'bg-[#a86434] text-[#f7ead9]' : 'bg-[#2a201a] text-[#c9b29a] hover:bg-[#8f5a31] hover:text-[#f7ead9]',
+									isAccepting ? 'bg-emerald-500 text-white' : 'bg-[#2a201a] text-[#c9b29a] hover:bg-emerald-500 hover:text-white',
 									'fas fa-check',
 									'Akceptacny stav',
 									$author$project$Main$Editor(
 										$author$project$Editor$Update$ToggleAccepting(stateId))),
 									A4(
 									$author$project$Main$viewIconButton,
-									isStart ? 'bg-[#d59652] text-[#1b120e]' : 'bg-[#2a201a] text-[#c9b29a] hover:bg-[#d59652] hover:text-[#1b120e]',
+									isStart ? 'bg-amber-400 text-[#1b120e]' : 'bg-[#2a201a] text-[#c9b29a] hover:bg-amber-400 hover:text-[#1b120e]',
 									'fas fa-star',
 									'Startovaci stav',
 									$author$project$Main$Editor(
@@ -10682,7 +11381,7 @@ var $author$project$Main$viewStateCard = F2(
 											$elm$core$Maybe$Just(stateId)))),
 									A4(
 									$author$project$Main$viewIconButton,
-									'bg-[#2a201a] text-[#c9b29a] hover:bg-[#76472c] hover:text-[#f7ead9]',
+									'bg-[#2a201a] text-[#c9b29a] hover:bg-rose-500 hover:text-white',
 									'fas fa-trash',
 									'Odstranit stav',
 									$author$project$Main$Editor(
@@ -11631,7 +12330,7 @@ var $author$project$Main$view = function (model) {
 						$author$project$Main$viewSidebar(model),
 						$author$project$Main$viewMain(model)
 					])),
-				model.guideOpen ? $author$project$Main$viewGuideOverlay : $elm$html$Html$text('')
+				model.guideOpen ? $author$project$Main$viewGuideOverlay(model) : $elm$html$Html$text('')
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
