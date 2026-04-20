@@ -103,10 +103,15 @@
 
     <script src="elm.js"></script>
     <script>
+        const STORAGE_KEY = 'elm-automaton-project';
+
         const app = Elm.Main.init({
             node: document.getElementById('app'),
             flags: null
         });
+
+        const savedAutomaton = localStorage.getItem(STORAGE_KEY) || '';
+        app.ports.savedAutomatonLoaded.send(savedAutomaton);
 
         app.ports.downloadJsonFile.subscribe((jsonText) => {
             const blob = new Blob([jsonText], { type: 'application/json;charset=utf-8' });
@@ -140,6 +145,10 @@
             });
 
             input.click();
+        });
+
+        app.ports.saveAutomatonToLocalStorage.subscribe((jsonText) => {
+            localStorage.setItem(STORAGE_KEY, jsonText);
         });
 
         const serializeGraphSvg = () => {

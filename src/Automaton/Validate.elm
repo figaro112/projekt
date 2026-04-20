@@ -1,4 +1,4 @@
-module Automaton.Validate exposing (DuplicateTransitionGroup, Error(..), duplicateTransitionGroups, isDeterministic, validate)
+module Automaton.Validate exposing (DuplicateTransitionGroup, Error(..), duplicateTransitionGroups, hasEpsilonTransitions, isDeterministic, validate)
 
 import Automaton.Core exposing (..)
 import Dict
@@ -57,6 +57,13 @@ duplicateTransitionGroups automaton =
 isDeterministic : Automaton -> Bool
 isDeterministic automaton =
     List.isEmpty (duplicateTransitionGroups automaton)
+        && not (hasEpsilonTransitions automaton)
+
+
+hasEpsilonTransitions : Automaton -> Bool
+hasEpsilonTransitions automaton =
+    automaton.transitions
+        |> List.any (\transition -> String.isEmpty transition.symbol)
 
 
 validate : Automaton -> List Error
@@ -76,7 +83,7 @@ validate a =
 
         badSym =
             a.transitions
-                |> List.filter (\t -> not (Set.member t.symbol alphabetSet))
+                |> List.filter (\t -> not (String.isEmpty t.symbol) && not (Set.member t.symbol alphabetSet))
                 |> List.map .symbol
                 |> Set.fromList
                 |> Set.toList

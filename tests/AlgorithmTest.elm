@@ -36,6 +36,60 @@ nfaWithMissingTransitions =
     }
 
 
+epsilonNfa : Core.Automaton
+epsilonNfa =
+    { states = [ 0, 1, 2 ]
+    , alphabet = [ "a" ]
+    , transitions =
+        [ { from = 0, symbol = "", to_ = 1 }
+        , { from = 1, symbol = "a", to_ = 2 }
+        ]
+    , start = Just 0
+    , accepting = [ 2 ]
+    , positions =
+        Dict.fromList
+            [ ( 0, { x = 120, y = 120 } )
+            , ( 1, { x = 240, y = 120 } )
+            , ( 2, { x = 360, y = 120 } )
+            ]
+    }
+
+
+epsilonAcceptingStartNfa : Core.Automaton
+epsilonAcceptingStartNfa =
+    { states = [ 0, 1 ]
+    , alphabet = [ "a" ]
+    , transitions =
+        [ { from = 0, symbol = "", to_ = 1 } ]
+    , start = Just 0
+    , accepting = [ 1 ]
+    , positions =
+        Dict.fromList
+            [ ( 0, { x = 120, y = 120 } )
+            , ( 1, { x = 240, y = 120 } )
+            ]
+    }
+
+
+epsilonAfterSymbolNfa : Core.Automaton
+epsilonAfterSymbolNfa =
+    { states = [ 0, 1, 2 ]
+    , alphabet = [ "a" ]
+    , transitions =
+        [ { from = 0, symbol = "a", to_ = 1 }
+        , { from = 1, symbol = "", to_ = 2 }
+        ]
+    , start = Just 0
+    , accepting = [ 2 ]
+    , positions =
+        Dict.fromList
+            [ ( 0, { x = 120, y = 120 } )
+            , ( 1, { x = 240, y = 120 } )
+            , ( 2, { x = 360, y = 120 } )
+            ]
+    }
+
+
 suite : Test
 suite =
     describe "Algorithms"
@@ -64,6 +118,46 @@ suite =
                 Expect.all
                     [ \_ -> Expect.equal 3 (List.length dfa.states)
                     , \_ -> Expect.equal 6 (List.length dfa.transitions)
+                    ]
+                    ()
+        , test "subset construction follows epsilon closure" <|
+            \_ ->
+                let
+                    dfa =
+                        Subset.nfaToDfa epsilonNfa
+                in
+                Expect.all
+                    [ \_ -> Expect.equal 3 (List.length dfa.states)
+                    , \_ ->
+                        dfa.transitions
+                            |> List.any (\transition -> transition.from == 0 && transition.symbol == "a" && transition.to_ == 1)
+                            |> Expect.equal True
+                    , \_ -> Expect.equal [ 1 ] dfa.accepting
+                    , \_ -> Expect.equal [ "a" ] dfa.alphabet
+                    ]
+                    ()
+        , test "subset construction marks start state as accepting through epsilon closure" <|
+            \_ ->
+                let
+                    dfa =
+                        Subset.nfaToDfa epsilonAcceptingStartNfa
+                in
+                Expect.equal [ 0 ] dfa.accepting
+        , test "subset construction applies epsilon closure after consuming a symbol" <|
+            \_ ->
+                let
+                    dfa =
+                        Subset.nfaToDfa epsilonAfterSymbolNfa
+                in
+                Expect.all
+                    [ \_ ->
+                        dfa.transitions
+                            |> List.any (\transition -> transition.from == 0 && transition.symbol == "a" && List.member transition.to_ dfa.accepting)
+                            |> Expect.equal True
+                    , \_ ->
+                        dfa.accepting
+                            |> List.isEmpty
+                            |> Expect.equal False
                     ]
                     ()
         ]

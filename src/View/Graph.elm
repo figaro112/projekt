@@ -18,6 +18,8 @@ type Msg
 type alias Highlight =
     { currentState : Maybe StateId
     , activeTransition : Maybe Transition
+    , pendingSource : Maybe StateId
+    , pendingTarget : Maybe StateId
     }
 
 
@@ -71,7 +73,16 @@ view highlight a =
         displayLabel symbols =
             let
                 cleaned =
-                    List.filter (not << String.isEmpty) symbols
+                    symbols
+                        |> List.map
+                            (\symbol ->
+                                if String.isEmpty symbol then
+                                    "ε"
+
+                                else
+                                    symbol
+                            )
+                        |> List.filter (not << String.isEmpty)
 
                 total =
                     List.length cleaned
@@ -191,6 +202,12 @@ view highlight a =
                 isCurrent =
                     highlight.currentState == Just s
 
+                isPendingSource =
+                    highlight.pendingSource == Just s
+
+                isPendingTarget =
+                    highlight.pendingTarget == Just s
+
                 xStr =
                     String.fromFloat x
 
@@ -237,6 +254,39 @@ view highlight a =
                     else
                         []
 
+                pendingSourceHalo =
+                    if isPendingSource then
+                        [ circle
+                            [ SA.cx xStr
+                            , SA.cy yStr
+                            , SA.r "39"
+                            , SA.fill "rgba(245,158,11,0.08)"
+                            , SA.stroke "rgba(245,158,11,0.7)"
+                            , SA.strokeWidth "2.6"
+                            ]
+                            []
+                        ]
+
+                    else
+                        []
+
+                pendingTargetHalo =
+                    if isPendingTarget then
+                        [ circle
+                            [ SA.cx xStr
+                            , SA.cy yStr
+                            , SA.r "41"
+                            , SA.fill "rgba(59,130,246,0.08)"
+                            , SA.stroke "rgba(59,130,246,0.75)"
+                            , SA.strokeWidth "2.8"
+                            , SA.strokeDasharray "6 5"
+                            ]
+                            []
+                        ]
+
+                    else
+                        []
+
                 acceptingNode =
                     if isAcc then
                         [ circle
@@ -259,6 +309,8 @@ view highlight a =
                 , SA.class "state-node"
                 ]
                 (currentHalo
+                    ++ pendingSourceHalo
+                    ++ pendingTargetHalo
                     ++ haloNode
                     ++ [ circle
                             [ SA.cx xStr

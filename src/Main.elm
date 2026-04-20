@@ -45,11 +45,56 @@ exportJsonString automaton =
         |> E.encode 2
 
 
+displaySymbol : String -> String
+displaySymbol symbol =
+    if String.isEmpty symbol then
+        "ε"
+
+    else
+        symbol
+
+
+normalizeTypedSymbol : String -> String
+normalizeTypedSymbol rawSymbol =
+    let
+        trimmed =
+            String.trim rawSymbol
+
+        lowered =
+            String.toLower trimmed
+    in
+    if trimmed == "ε" || lowered == "eps" || lowered == "epsilon" then
+        ""
+
+    else
+        trimmed
+
+
+isExplicitEpsilonInput : String -> Bool
+isExplicitEpsilonInput rawSymbol =
+    let
+        trimmed =
+            String.trim rawSymbol
+
+        lowered =
+            String.toLower trimmed
+    in
+    trimmed == "ε" || lowered == "eps" || lowered == "epsilon"
+
+
 type alias DragState =
     { dragging : Maybe A.StateId
     , offsetX : Float
     , offsetY : Float
     , original : Maybe A.Automaton
+    , moved : Bool
+    }
+
+
+type alias GraphTransitionDraft =
+    { from : A.StateId
+    , to_ : Maybe A.StateId
+    , symbol : String
     }
 
 
@@ -86,6 +131,7 @@ type alias Model =
     , guideOpen : Bool
     , guideTab : GuideTab
     , jsonFileTarget : JsonFileTarget
+    , graphTransitionDraft : Maybe GraphTransitionDraft
     , msgInfo : String
     , fromSel : String
     , symSel : String
@@ -158,6 +204,12 @@ port exportGraphSvgFile : () -> Cmd msg
 
 
 port exportGraphPngFile : () -> Cmd msg
+
+
+port saveAutomatonToLocalStorage : String -> Cmd msg
+
+
+port savedAutomatonLoaded : (String -> msg) -> Sub msg
 
 
 wordToSymbols : String -> List String
@@ -410,12 +462,98 @@ graphHighlight model =
     if showSimulationOverlay model then
         { currentState = model.simulation.currentState
         , activeTransition = model.simulation.activeTransition
+        , pendingSource = model.graphTransitionDraft |> Maybe.map .from
+        , pendingTarget = model.graphTransitionDraft |> Maybe.andThen .to_
         }
 
     else
         { currentState = Nothing
         , activeTransition = Nothing
+        , pendingSource = model.graphTransitionDraft |> Maybe.map .from
+        , pendingTarget = model.graphTransitionDraft |> Maybe.andThen .to_
         }
+
+
+startGraphTransition : A.StateId -> Model -> Model
+startGraphTransition stateId model =
+    { model
+        | graphTransitionDraft = Just { from = stateId, to_ = Nothing, symbol = "" }
+        , msgInfo = "Vybrany zdrojovy stav q" ++ String.fromInt stateId ++ ". Klikni na cielovy stav."
+    }
+
+
+commitTransition : A.StateId -> String -> A.StateId -> Model -> Model
+commitTransition from symbol to_ model =
+    update
+        (Editor (Ed.AddTransition from symbol to_))
+        { model
+            | graphTransitionDraft = Nothing
+            , fromSel = String.fromInt from
+            , toSel = String.fromInt to_
+            , symSel = ""
+            , selectedTab = EditorTab
+            , editorSubTab = TransitionFormSub
+        }
+
+
+automatonSignature : A.Automaton -> String
+automatonSignature automaton =
+    exportJsonString automaton
+
+
+shouldPersistAutomaton : Msg -> Model -> Model -> Bool
+shouldPersistAutomaton msg previousModel updatedModel =
+    case msg of
+        GraphMsg (Graph.Drag _ _) ->
+            False
+
+        GraphMsg Graph.EndDrag ->
+            previousModel.dragState.moved
+
+        SavedAutomatonLoaded _ ->
+            False
+
+        _ ->
+            automatonSignature previousModel.history.present /= automatonSignature updatedModel.history.present
+
+
+persistAutomatonCmd : Msg -> Model -> Model -> Cmd Msg
+persistAutomatonCmd msg previousModel updatedModel =
+    if shouldPersistAutomaton msg previousModel updatedModel then
+        saveAutomatonToLocalStorage (exportJsonString updatedModel.history.present)
+
+    else
+        Cmd.none
+
+
+handleGraphStateClick : A.StateId -> Model -> Model
+handleGraphStateClick stateId model =
+    case model.graphTransitionDraft of
+        Nothing ->
+            startGraphTransition stateId model
+
+        Just draft ->
+            case draft.to_ of
+                Nothing ->
+                    { model
+                        | graphTransitionDraft =
+                            Just
+                                { draft
+                                    | to_ = Just stateId
+                                    , symbol = model.symSel
+                                }
+                        , fromSel = String.fromInt draft.from
+                        , toSel = String.fromInt stateId
+                        , selectedTab = EditorTab
+                        , editorSubTab = TransitionFormSub
+                        , msgInfo =
+                            "Vybrany cielovy stav q"
+                                ++ String.fromInt stateId
+                                ++ ". Zadaj symbol alebo pouzi ε prechod."
+                    }
+
+                Just _ ->
+                    startGraphTransition stateId model
 
 
 playbackSpeedValue : PlaybackSpeed -> String
@@ -595,6 +733,7 @@ init =
     , guideOpen = False
     , guideTab = GuideEditorTab
     , jsonFileTarget = MainImportFile
+    , graphTransitionDraft = Nothing
     , msgInfo = "Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova."
     , fromSel = "0"
     , symSel = ""
@@ -605,12 +744,13 @@ init =
     , selectedTab = EditorTab
     , editorSubTab = StatesSub
     , algorithmsSubTab = AlgoBasicSub
-    , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing }
+    , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing, moved = False }
     }
 
 
 type Msg
     = Editor Ed.Msg
+    | SavedAutomatonLoaded String
     | Undo
     | Redo
     | WordChanged String
@@ -628,6 +768,12 @@ type Msg
     | SymChanged String
     | ToChanged String
     | AddTransitionClicked
+    | AddEpsilonTransitionClicked
+    | GraphTransitionSymbolChanged String
+    | ConfirmGraphTransition
+    | ConfirmGraphEpsilonTransition
+    | CancelGraphTransition
+    | GlobalKeyPressed String
     | ExportJson
     | DownloadJsonFile
     | ExportGraphSvg
@@ -652,6 +798,27 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
+        SavedAutomatonLoaded rawJson ->
+            if String.isEmpty (String.trim rawJson) then
+                model
+
+            else
+                case D.decodeString Codec.decode rawJson of
+                    Ok restoredAutomaton ->
+                        let
+                            enrichedAutomaton =
+                                ensureAlphabetCoverage restoredAutomaton
+                        in
+                        { model
+                            | history = Ed.initHistory enrichedAutomaton
+                            , simulation = resetSimulation enrichedAutomaton model.inputWord
+                            , graphTransitionDraft = Nothing
+                            , msgInfo = "Obnoveny posledny ulozeny automat z localStorage."
+                        }
+
+                    Err _ ->
+                        { model | msgInfo = "Ulozeny automat v localStorage sa nepodarilo obnovit." }
+
         SelectTab tab ->
             { model | selectedTab = tab }
 
@@ -706,6 +873,7 @@ update msg model =
             { model
                 | history = newHistory
                 , simulation = resetSimulation newAutomaton model.inputWord
+                , graphTransitionDraft = Nothing
                 , msgInfo = info
             }
 
@@ -717,6 +885,7 @@ update msg model =
             { model
                 | history = restored
                 , simulation = resetSimulation restored.present model.inputWord
+                , graphTransitionDraft = Nothing
                 , msgInfo = "Vratena posledna zmena."
             }
 
@@ -728,6 +897,7 @@ update msg model =
             { model
                 | history = restored
                 , simulation = resetSimulation restored.present model.inputWord
+                , graphTransitionDraft = Nothing
                 , msgInfo = "Obnovena dalsia zmena."
             }
 
@@ -843,17 +1013,92 @@ update msg model =
 
                 mt =
                     String.toInt model.toSel
+
+                normalizedSymbol =
+                    normalizeTypedSymbol model.symSel
+
+                explicitEpsilon =
+                    isExplicitEpsilonInput model.symSel
             in
-            case ( mf, mt, String.trim model.symSel ) of
+            case ( mf, mt, normalizedSymbol ) of
                 ( Just f, Just t, sym ) ->
-                    if String.isEmpty sym then
+                    if String.isEmpty sym && not explicitEpsilon then
                         { model | msgInfo = "Zadaj symbol prechodu." }
 
                     else
-                        update (Editor (Ed.AddTransition f sym t)) { model | symSel = "" }
+                        commitTransition f sym t model
 
                 _ ->
                     { model | msgInfo = "Vypln From, To a Symbol." }
+
+        AddEpsilonTransitionClicked ->
+            let
+                mf =
+                    String.toInt model.fromSel
+
+                mt =
+                    String.toInt model.toSel
+            in
+            case ( mf, mt ) of
+                ( Just f, Just t ) ->
+                    commitTransition f "" t model
+
+                _ ->
+                    { model | msgInfo = "Vypln From a To pre ε prechod." }
+
+        GraphTransitionSymbolChanged symbol ->
+            { model
+                | graphTransitionDraft =
+                    model.graphTransitionDraft
+                        |> Maybe.map (\draft -> { draft | symbol = symbol })
+            }
+
+        ConfirmGraphTransition ->
+            case model.graphTransitionDraft of
+                Just draft ->
+                    case draft.to_ of
+                        Just targetState ->
+                            let
+                                normalizedSymbol =
+                                    normalizeTypedSymbol draft.symbol
+
+                                explicitEpsilon =
+                                    isExplicitEpsilonInput draft.symbol
+                            in
+                            if String.isEmpty normalizedSymbol && not explicitEpsilon then
+                                { model | msgInfo = "Zadaj symbol alebo pouzi ε prechod." }
+
+                            else
+                                commitTransition draft.from normalizedSymbol targetState { model | symSel = draft.symbol }
+
+                        Nothing ->
+                            { model | msgInfo = "Najprv klikni na cielovy stav v grafe." }
+
+                Nothing ->
+                    model
+
+        ConfirmGraphEpsilonTransition ->
+            case model.graphTransitionDraft of
+                Just draft ->
+                    case draft.to_ of
+                        Just targetState ->
+                            commitTransition draft.from "" targetState model
+
+                        Nothing ->
+                            { model | msgInfo = "Najprv klikni na cielovy stav v grafe." }
+
+                Nothing ->
+                    model
+
+        CancelGraphTransition ->
+            { model | graphTransitionDraft = Nothing, msgInfo = "Priama tvorba prechodu bola zrusena." }
+
+        GlobalKeyPressed key ->
+            if key == "Escape" && model.graphTransitionDraft /= Nothing then
+                { model | graphTransitionDraft = Nothing, msgInfo = "Priama tvorba prechodu bola zrusena cez Esc." }
+
+            else
+                model
 
         ExportJson ->
             let
@@ -917,6 +1162,7 @@ update msg model =
                         { model
                             | history = hist
                             , simulation = resetSimulation enriched model.inputWord
+                            , graphTransitionDraft = Nothing
                             , msgInfo = "Import prebehol uspesne."
                             , importText = ""
                         }
@@ -948,6 +1194,7 @@ update msg model =
                     { model
                         | history = hist
                         , simulation = resetSimulation dfa model.inputWord
+                        , graphTransitionDraft = Nothing
                         , msgInfo = "Subset construction hotova."
                     }
 
@@ -969,6 +1216,7 @@ update msg model =
                     { model
                         | history = hist
                         , simulation = resetSimulation mini model.inputWord
+                        , graphTransitionDraft = Nothing
                         , msgInfo = "Minimalizacia dokoncena."
                     }
 
@@ -990,6 +1238,7 @@ update msg model =
                     { model
                         | history = hist
                         , simulation = resetSimulation comp model.inputWord
+                        , graphTransitionDraft = Nothing
                         , msgInfo = "Komplement bol vytvoreny."
                     }
 
@@ -1017,6 +1266,7 @@ update msg model =
                                     { model
                                         | history = hist
                                         , simulation = resetSimulation u model.inputWord
+                                        , graphTransitionDraft = Nothing
                                         , msgInfo = "Zjednotenie A U B je hotove."
                                         , otherText = ""
                                     }
@@ -1048,6 +1298,7 @@ update msg model =
                                     { model
                                         | history = hist
                                         , simulation = resetSimulation i model.inputWord
+                                        , graphTransitionDraft = Nothing
                                         , msgInfo = "Prienik A n B je hotovy."
                                         , otherText = ""
                                     }
@@ -1069,13 +1320,13 @@ update msg model =
                             , offsetX = clientX - pos.x
                             , offsetY = clientY - pos.y
                             , original = Just model.history.present
+                            , moved = False
                             }
-                        , msgInfo = "Presuvaj stav mysou priamo na platne."
                     }
 
                 Graph.Drag clientX clientY ->
-                    case model.dragState.dragging of
-                        Just stateId ->
+                    case ( model.dragState.dragging, model.dragState.original ) of
+                        ( Just stateId, Just originalAutomaton ) ->
                             let
                                 newX =
                                     clamp 48 1172 (clientX - model.dragState.offsetX)
@@ -1083,36 +1334,67 @@ update msg model =
                                 newY =
                                     clamp 48 792 (clientY - model.dragState.offsetY)
 
-                                updatedAutomaton =
-                                    model.history.present
-                                        |> Ed.apply (Ed.MoveState stateId newX newY)
+                                originalPosition =
+                                    Dict.get stateId originalAutomaton.positions
+                                        |> Maybe.withDefault { x = newX, y = newY }
 
-                                updatedHistory =
-                                    { past = model.history.past
-                                    , present = updatedAutomaton
-                                    , future = model.history.future
-                                    }
+                                movedEnough =
+                                    model.dragState.moved
+                                        || abs (newX - originalPosition.x) > 5
+                                        || abs (newY - originalPosition.y) > 5
                             in
-                            { model | history = updatedHistory }
+                            if movedEnough then
+                                let
+                                    updatedAutomaton =
+                                        model.history.present
+                                            |> Ed.apply (Ed.MoveState stateId newX newY)
 
-                        Nothing ->
+                                    updatedHistory =
+                                        { past = model.history.past
+                                        , present = updatedAutomaton
+                                        , future = model.history.future
+                                        }
+                                in
+                                { model
+                                    | history = updatedHistory
+                                    , dragState =
+                                        { dragging = model.dragState.dragging
+                                        , offsetX = model.dragState.offsetX
+                                        , offsetY = model.dragState.offsetY
+                                        , original = model.dragState.original
+                                        , moved = True
+                                        }
+                                    , msgInfo = "Presuvaj stav mysou priamo na platne."
+                                }
+
+                            else
+                                model
+
+                        ( Nothing, _ ) ->
+                            model
+
+                        _ ->
                             model
 
                 Graph.EndDrag ->
-                    case model.dragState.original of
-                        Just oldAutomaton ->
+                    case ( model.dragState.dragging, model.dragState.original, model.dragState.moved ) of
+                        ( Just stateId, _, False ) ->
+                            handleGraphStateClick stateId
+                                { model | dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing, moved = False } }
+
+                        ( _, Just oldAutomaton, True ) ->
                             { model
                                 | history =
                                     { past = oldAutomaton :: model.history.past
                                     , present = model.history.present
                                     , future = []
                                     }
-                                , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing }
+                                , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing, moved = False }
                                 , msgInfo = "Pozicia stavu bola ulozena."
                             }
 
-                        Nothing ->
-                            { model | dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing } }
+                        _ ->
+                            { model | dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing, moved = False } }
 
                 Graph.NoOp ->
                     model
@@ -1303,17 +1585,26 @@ viewEditorPanel model automaton =
             TransitionFormSub ->
                 viewSectionCard
                     "Novy prechod"
-                    "Definuj smer a symbol. Prechody sa okamzite vykreslia do grafu."
+                    "Definuj smer a symbol. Prechody sa okamzite vykreslia do grafu, epsilon zadas ako ε alebo samostatnym tlacidlom."
                     [ div [ class "grid grid-cols-1 gap-3" ]
                         [ viewSelectField "Z (From)" model.fromSel automaton.states FromChanged
-                        , viewInputField "Symbol" model.symSel "napr. 0, a, x" SymChanged
+                        , viewInputField "Symbol" model.symSel "napr. 0, a, x alebo ε" SymChanged
                         , viewSelectField "Do (To)" model.toSel automaton.states ToChanged
-                        , button
-                            [ class "w-full rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
-                            , onClick AddTransitionClicked
-                            ]
-                            [ i [ class "fas fa-plus mr-2" ] []
-                            , text "Pridat prechod"
+                        , div [ class "grid grid-cols-1 gap-3 md:grid-cols-2" ]
+                            [ button
+                                [ class "w-full rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
+                                , onClick AddTransitionClicked
+                                ]
+                                [ i [ class "fas fa-plus mr-2" ] []
+                                , text "Pridat prechod"
+                                ]
+                            , button
+                                [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                                , onClick AddEpsilonTransitionClicked
+                                ]
+                                [ i [ class "fas fa-wave-square mr-2" ] []
+                                , text "Pridat ε prechod"
+                                ]
                             ]
                         ]
                     ]
@@ -1445,7 +1736,7 @@ viewTransitionItem idx transition =
         [ div [ class "flex items-center gap-2 text-sm text-[#f2e6d7]" ]
             [ span [ class "font-semibold" ] [ text ("q" ++ String.fromInt transition.from) ]
             , i [ class "fas fa-arrow-right text-xs text-[#8d705d]" ] []
-            , span [ class "rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-100" ] [ text transition.symbol ]
+            , span [ class "rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 font-mono text-xs font-bold text-amber-100" ] [ text (displaySymbol transition.symbol) ]
             , i [ class "fas fa-arrow-right text-xs text-[#8d705d]" ] []
             , span [ class "font-semibold" ] [ text ("q" ++ String.fromInt transition.to_) ]
             ]
@@ -1638,7 +1929,7 @@ viewTapeCell activeIndex cellIndex symbol =
         isActive =
             activeIndex == cellIndex
 
-        displaySymbol =
+        cellDisplaySymbol =
             if String.isEmpty symbol then
                 "_"
 
@@ -1655,7 +1946,7 @@ viewTapeCell activeIndex cellIndex symbol =
                         "bg-[#1a1411] text-[#eadbcf]"
                    )
         ]
-        [ text displaySymbol ]
+        [ text cellDisplaySymbol ]
 
 
 viewSimulationPanel : Model -> Html Msg
@@ -1799,6 +2090,12 @@ viewMain model =
                             , viewToolbarButton "fas fa-redo" "Redo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Redo
                             ]
                         ]
+                    , case model.graphTransitionDraft of
+                        Just draft ->
+                            viewGraphTransitionComposer draft
+
+                        Nothing ->
+                            text ""
                     , if List.isEmpty automaton.states then
                         div [ class "grid min-h-[840px] place-items-center rounded-[28px] border border-dashed border-[#4b392d] bg-[#16110f]/70 text-center" ]
                             [ div [ class "max-w-md px-6" ]
@@ -1828,6 +2125,75 @@ viewToolbarButton icon labelText extra buttonMsg =
         [ i [ class icon ] []
         , text labelText
         ]
+
+
+viewGraphTransitionComposer : GraphTransitionDraft -> Html Msg
+viewGraphTransitionComposer draft =
+    let
+        sourceLabel =
+            "q" ++ String.fromInt draft.from
+    in
+    case draft.to_ of
+        Nothing ->
+            div [ class "mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10" ]
+                [ div [ class "flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between" ]
+                    [ div []
+                        [ div [ class "text-sm font-semibold text-[#f5ede3]" ] [ text ("Priama tvorba prechodu zo stavu " ++ sourceLabel) ]
+                        , p [ class "mt-1 text-sm leading-6 text-[#c9b29a]" ] [ text "Zdrojovy stav je vybrany. Klikni v grafe na cielovy stav a potom zadaj symbol alebo ε." ]
+                        ]
+                    , button
+                        [ class "inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                        , onClick CancelGraphTransition
+                        ]
+                        [ i [ class "fas fa-xmark" ] []
+                        , text "Zrusit"
+                        ]
+                    ]
+                ]
+
+        Just targetState ->
+            let
+                targetLabel =
+                    "q" ++ String.fromInt targetState
+            in
+            div [ class "mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10" ]
+                [ div [ class "mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between" ]
+                    [ div []
+                        [ div [ class "text-sm font-semibold text-[#f5ede3]" ] [ text ("Novy prechod " ++ sourceLabel ++ " -> " ++ targetLabel) ]
+                        , p [ class "mt-1 text-sm leading-6 text-[#c9b29a]" ] [ text "Zadaj symbol prechodu. Ak chces epsilon prechod, napis ε alebo pouzi samostatne tlacidlo." ]
+                        ]
+                    , button
+                        [ class "inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                        , onClick CancelGraphTransition
+                        ]
+                        [ i [ class "fas fa-xmark" ] []
+                        , text "Zrusit"
+                        ]
+                    ]
+                , div [ class "grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr),auto,auto]" ]
+                    [ input
+                        [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400"
+                        , value draft.symbol
+                        , onInput GraphTransitionSymbolChanged
+                        , placeholder "napr. 0, a, x alebo ε"
+                        ]
+                        []
+                    , button
+                        [ class "rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]"
+                        , onClick ConfirmGraphTransition
+                        ]
+                        [ i [ class "fas fa-plus mr-2" ] []
+                        , text "Pridat prechod"
+                        ]
+                    , button
+                        [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                        , onClick ConfirmGraphEpsilonTransition
+                        ]
+                        [ i [ class "fas fa-wave-square mr-2" ] []
+                        , text "ε prechod"
+                        ]
+                    ]
+                ]
 
 
 viewGuideOverlay : Model -> Html Msg
@@ -1925,9 +2291,11 @@ viewGuideTabContent guideTab =
                     "Praca s prechodmi"
                     "Ako definovat jazyk automatu v editore."
                     [ ( "Novy prechod", "V podkarte Prechod zvol From, symbol a To. Hrana sa hned vykresli v diagrame." )
-                    , ( "Symbol prechodu", "Pole Symbol akceptuje lubovolny textovy symbol. Pouzite symboly sa doplnaju do abecedy." )
+                    , ( "Priama tvorba v grafe", "Klikni na zdrojovy stav, potom na cielovy stav a dopln symbol v paneli nad grafom. Pre epsilon mozes pouzit ε prechod." )
+                    , ( "Zrusenie cez Esc", "Ak mas rozpracovany prechod vytvarany klikmi v grafe, stlacenim Esc ho okamzite zrusis." )
+                    , ( "Symbol prechodu", "Pole Symbol akceptuje lubovolny textovy symbol. Ak napises ε, vytvori sa epsilon prechod a symbol sa nezaradi do abecedy." )
                     , ( "Zoznam prechodov", "Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom." )
-                    , ( "DFA vs NFA", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, automat je NFA a cast algoritmov sa zablokuje." )
+                    , ( "DFA vs NFA", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo ε prechody, automat je NFA a cast algoritmov sa zablokuje." )
                     ]
                 ]
 
@@ -1959,7 +2327,7 @@ viewGuideTabContent guideTab =
                 , viewGuideActionTable
                     "Dostupne algoritmy"
                     "Kazdy vysledok prepise aktualne platno."
-                    [ ( "NFA -> DFA", "Pouziva subset construction. Aktualna verzia nepodporuje epsilon prechody." )
+                    [ ( "NFA -> DFA", "Pouziva subset construction vratane epsilon-closure, takže podporuje aj ε prechody." )
                     , ( "Minimalizacia", "Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy." )
                     , ( "Komplement", "Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu." )
                     , ( "Zjednotenie a prienik", "Nacita druhy automat z JSON a spravi produktovu konstrukciu nad spolocnou abecedou." )
@@ -1985,6 +2353,7 @@ viewGuideTabContent guideTab =
                     , ( "Import zo suboru", "Vybrat JSON subor nacita obsah z disku do importneho pola." )
                     , ( "Druhy automat", "Pri A U B a A n B vies druhy automat vlozit ako text alebo vybrat ako subor." )
                     , ( "Export grafu", "Diagram vies ulozit ako SVG aj PNG." )
+                    , ( "Automaticke obnovenie", "Posledny automat sa priebezne uklada do localStorage, takže po refreshi sa automaticky obnovi." )
                     ]
                 , viewGuideInfoGrid
                     "Co musi obsahovat JSON"
@@ -2017,8 +2386,8 @@ viewGuideTabContent guideTab =
                     "Algoritmicke obmedzenia"
                     "Aj validny automat moze narazit na obmedzenie algoritmu."
                     [ ( "DFA only", "Simulacia slova, minimalizacia, komplement, zjednotenie a prienik su urcene pre validny DFA." )
-                    , ( "Nedeterministicke prechody", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele, treba najprv spustit NFA -> DFA." )
-                    , ( "Epsilon prechody", "Subset construction v tejto verzii epsilon prechody nepodporuje." )
+                    , ( "Nedeterministicke prechody", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo ε prechody, treba najprv spustit NFA -> DFA." )
+                    , ( "Epsilon prechody", "Epsilon prechody su podporene pri prevode NFA -> DFA, ale automat s ε hranami sa stale sprava ako NFA." )
                     , ( "Neplatny JSON druheho automatu", "Pri mnozinovych operaciach musi byt aj druhy automat v korektnom JSON formate." )
                     ]
                 ]
@@ -2038,8 +2407,9 @@ viewGuideTabContent guideTab =
                     "Aktualne limity"
                     "Dolezite poznamky pred odovzdanim."
                     [ ( "DFA operacie", "Simulacia, minimalizacia, komplement, zjednotenie a prienik ocakavaju validny DFA." )
-                    , ( "NFA -> DFA", "Subset construction nepodporuje epsilon prechody." )
+                    , ( "NFA -> DFA", "Subset construction podporuje aj ε prechody cez epsilon-closure." )
                     , ( "Prepis vysledku", "Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export." )
+                    , ( "Perzistencia", "Aktualny automat sa uklada do localStorage pre pohodlne obnovenie po refreshi." )
                     , ( "Ciselne ID stavov", "Stavy su identifikovane cislami a novy stav dostane dalsie volne ID." )
                     ]
                 ]
@@ -2147,6 +2517,9 @@ viewBottomStats automaton =
         duplicateGroups =
             V.duplicateTransitionGroups automaton
 
+        hasEpsilon =
+            V.hasEpsilonTransitions automaton
+
         deterministic =
             V.isDeterministic automaton
     in
@@ -2160,7 +2533,7 @@ viewBottomStats automaton =
             , viewTopStat "Pocet prechodov" (String.fromInt (List.length automaton.transitions)) "fas fa-random" "Vsetky definovane hrany"
             , viewTopStat "Pouzita abeceda" (String.fromInt (List.length alphabetList)) "fas fa-font" alphabetPreview
             , viewTopStat "Start" (Maybe.withDefault "-" (Maybe.map (\s -> "q" ++ String.fromInt s) automaton.start)) "fas fa-play" "Vstupny stav automatu"
-            , viewTopStat "Rezim" (if deterministic then "DFA" else "NFA") "fas fa-code-branch" (if deterministic then "Bez duplicitnych hran pre rovnaky symbol" else "Nasli sa viacnasobne prechody pre rovnaky symbol")
+            , viewTopStat "Rezim" (if deterministic then "DFA" else "NFA") "fas fa-code-branch" (if deterministic then "Bez ε prechodov a bez duplicitnych hran pre rovnaky symbol" else "Obsahuje ε prechody alebo viacnasobne ciele pre rovnaky symbol")
             ]
         , div [ class "mt-4 rounded-3xl border border-[#45352b] bg-[#120f0d]/80 p-4" ]
             [ div [ class "flex items-center justify-between gap-3" ]
@@ -2178,24 +2551,33 @@ viewBottomStats automaton =
                     [ text (if deterministic then "Deterministicky" else "Nedeterministicky") ]
                 ]
             , if deterministic then
-                p [ class "mt-3 text-sm leading-6 text-[#bca48d]" ] [ text "Automat nema ziadny stav, z ktoreho by viedlo viac prechodov na rovnaky symbol." ]
+                p [ class "mt-3 text-sm leading-6 text-[#bca48d]" ] [ text "Automat nema ziadny stav, z ktoreho by viedlo viac prechodov na rovnaky symbol, ani ziadny ε prechod." ]
 
               else
                 div [ class "mt-3 space-y-2" ]
-                    (duplicateGroups
-                        |> List.map
-                            (\group ->
-                                div [ class "rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" ]
-                                    [ text
-                                        ("q"
-                                            ++ String.fromInt group.from
-                                            ++ " ma pre symbol '"
-                                            ++ group.symbol
-                                            ++ "' viac cielov: "
-                                            ++ String.join ", " (List.map (\target -> "q" ++ String.fromInt target) group.targets)
-                                        )
-                                    ]
-                            )
+                    ((if hasEpsilon then
+                        [ div [ class "rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" ]
+                            [ text "Automat obsahuje aspon jeden ε prechod, preto sa sprava ako NFA." ]
+                        ]
+
+                      else
+                        []
+                     )
+                        ++ (duplicateGroups
+                                |> List.map
+                                    (\group ->
+                                        div [ class "rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" ]
+                                            [ text
+                                                ("q"
+                                                    ++ String.fromInt group.from
+                                                    ++ " ma pre symbol '"
+                                                    ++ displaySymbol group.symbol
+                                                    ++ "' viac cielov: "
+                                                    ++ String.join ", " (List.map (\target -> "q" ++ String.fromInt target) group.targets)
+                                                )
+                                            ]
+                                    )
+                           )
                     )
             ]
         ]
@@ -2243,8 +2625,21 @@ subscriptions model =
 
             else
                 Sub.none
+
+        keySubscription =
+            if model.graphTransitionDraft /= Nothing then
+                Browser.Events.onKeyDown (D.field "key" D.string |> D.map GlobalKeyPressed)
+
+            else
+                Sub.none
     in
-    Sub.batch [ dragSubscription, playbackSubscription, jsonFileSelected JsonFileLoaded ]
+    Sub.batch
+        [ dragSubscription
+        , playbackSubscription
+        , keySubscription
+        , jsonFileSelected JsonFileLoaded
+        , savedAutomatonLoaded SavedAutomatonLoaded
+        ]
 
 
 mouseMoveDecoder : D.Decoder Graph.Msg
@@ -2265,6 +2660,11 @@ main =
                     updatedModel =
                         update message model
                 in
-                ( updatedModel, commandFor message updatedModel )
+                ( updatedModel
+                , Cmd.batch
+                    [ commandFor message updatedModel
+                    , persistAutomatonCmd message model updatedModel
+                    ]
+                )
         , subscriptions = subscriptions
         }

@@ -21,6 +21,18 @@ nfaWithDuplicateSymbol =
     }
 
 
+epsilonNfa : Core.Automaton
+epsilonNfa =
+    { states = [ 0, 1 ]
+    , alphabet = [ "a" ]
+    , transitions =
+        [ { from = 0, symbol = "", to_ = 1 } ]
+    , start = Just 0
+    , accepting = [ 1 ]
+    , positions = Dict.empty
+    }
+
+
 suite : Test
 suite =
     describe "Validate"
@@ -36,4 +48,16 @@ suite =
 
                     [] ->
                         Expect.fail "expected duplicate transition group"
+        , test "epsilon transition makes automaton nondeterministic for DFA checks" <|
+            \_ ->
+                Validate.isDeterministic epsilonNfa
+                    |> Expect.equal False
+        , test "detects epsilon transitions" <|
+            \_ ->
+                Validate.hasEpsilonTransitions epsilonNfa
+                    |> Expect.equal True
+        , test "validate allows epsilon transitions outside declared alphabet" <|
+            \_ ->
+                Validate.validate epsilonNfa
+                    |> Expect.equal []
         ]

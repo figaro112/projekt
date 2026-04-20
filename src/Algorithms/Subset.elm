@@ -27,17 +27,19 @@ nfaToDfa a =
                     if List.isEmpty a.alphabet then
                         a.transitions
                             |> List.map .symbol
+                            |> List.filter (not << String.isEmpty)
                             |> Set.fromList
                             |> Set.toList
 
                     else
                         a.alphabet
+                            |> List.filter (not << String.isEmpty)
                             |> Set.fromList
                             |> Set.toList
 
                 startSet : Set A.StateId
                 startSet =
-                    Set.fromList [ s0 ]
+                    epsilonClosure (Set.fromList [ s0 ])
 
                 keyOf : Set A.StateId -> String
                 keyOf ss =
@@ -47,6 +49,30 @@ nfaToDfa a =
                         |> List.map String.fromInt
                         |> String.join ","
 
+                epsilonClosure : Set A.StateId -> Set A.StateId
+                epsilonClosure initialStates =
+                    let
+                        walkClosure : List A.StateId -> Set A.StateId -> Set A.StateId
+                        walkClosure pending visited =
+                            case pending of
+                                [] ->
+                                    visited
+
+                                stateId :: rest ->
+                                    let
+                                        epsilonTargets =
+                                            a.transitions
+                                                |> List.filter (\transition -> transition.from == stateId && String.isEmpty transition.symbol)
+                                                |> List.map .to_
+                                                |> List.filter (\target -> not (Set.member target visited))
+
+                                        visitedNext =
+                                            List.foldl Set.insert visited epsilonTargets
+                                    in
+                                    walkClosure (rest ++ epsilonTargets) visitedNext
+                    in
+                    walkClosure (Set.toList initialStates) initialStates
+
                 move : Set A.StateId -> A.Symbol -> Set A.StateId
                 move ss sym =
                     ss
@@ -54,10 +80,11 @@ nfaToDfa a =
                         |> List.concatMap
                             (\stateId ->
                                 a.transitions
-                                    |> List.filter (\t -> t.from == stateId && t.symbol == sym)
+                                    |> List.filter (\transition -> transition.from == stateId && transition.symbol == sym)
                                     |> List.map .to_
                             )
                         |> Set.fromList
+                        |> epsilonClosure
 
                 step : Acc -> Acc
                 step st =
