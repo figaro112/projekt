@@ -8906,17 +8906,17 @@ var $author$project$Main$guidePrimaryActionLabel = function (guideTab) {
 var $author$project$Main$guideTabSubtitle = function (guideTab) {
 	switch (guideTab.$) {
 		case 'GuideEditorTab':
-			return 'Prakticky navod na budovanie stavov, prechodov a upravu grafu priamo na platne.';
+			return 'Prakticky navod na budovanie stavov, prechodov, epsilon hran a upravu grafu priamo na platne.';
 		case 'GuideSimulationTab':
-			return 'Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu.';
+			return 'Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu pri validnom DFA.';
 		case 'GuideConversionTab':
 			return '';
 		case 'GuideDataTab':
-			return 'Import, export, JSON format a praca s druhym automatom pri mnozinovych operaciach.';
+			return 'Import, export, JSON format, localStorage a praca s druhym automatom pri mnozinovych operaciach.';
 		case 'GuideErrorsTab':
 			return 'Najcastejsie validacne problemy a co presne znamenaju pri tvorbe alebo importe automatu.';
 		default:
-			return 'Ako je appka poskladana, co uklada a ake ma aktualne limity.';
+			return 'Ako je appka poskladana, co uklada automaticky a ake ma aktualne limity.';
 	}
 };
 var $author$project$Main$GuideDataTab = {$: 'GuideDataTab'};
@@ -9308,9 +9308,9 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						$author$project$Main$viewGuideSummaryCard,
 						'fas fa-pen-ruler',
 						'Editor automatov',
-						'Panel Editor je urceny na tvorbu stavov, prechodov a upravu grafu s okamzitou vizualnou odozvou.',
+						'Panel Editor je urceny na tvorbu stavov, beznych aj epsilon prechodov a upravu grafu s okamzitou vizualnou odozvou.',
 						_List_fromArray(
-							['Stavy', 'Prechody', 'Drag & drop', 'Undo / Redo'])),
+							['Stavy', 'Prechody', 'epsilon', 'Undo / Redo'])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
 						'Praca so stavmi',
@@ -9321,7 +9321,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Startovaci stav', 'Hviezdicka nastavi vybrany stav ako jediny start automatu.'),
 								_Utils_Tuple2('Akceptacny stav', 'Fajka prepina akceptacny stav. V grafe ho spoznas podla dvojitej kruznice.'),
 								_Utils_Tuple2('Odstranenie stavu', 'Kos odstrani stav aj vsetky prechody, ktore do neho vedu alebo z neho vychadzaju.'),
-								_Utils_Tuple2('Presun na platne', 'Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie.')
+								_Utils_Tuple2('Presun na platne', 'Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie a do localStorage.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9330,11 +9330,13 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						_List_fromArray(
 							[
 								_Utils_Tuple2('Novy prechod', 'V podkarte Prechod zvol From, symbol a To. Hrana sa hned vykresli v diagrame.'),
-								_Utils_Tuple2('Priama tvorba v grafe', 'Klikni na zdrojovy stav, potom na cielovy stav a dopln symbol v paneli nad grafom. Pre epsilon mozes pouzit ε prechod.'),
-								_Utils_Tuple2('Zrusenie cez Esc', 'Ak mas rozpracovany prechod vytvarany klikmi v grafe, stlacenim Esc ho okamzite zrusis.'),
-								_Utils_Tuple2('Symbol prechodu', 'Pole Symbol akceptuje lubovolny textovy symbol. Ak napises ε, vytvori sa epsilon prechod a symbol sa nezaradi do abecedy.'),
+								_Utils_Tuple2('Priama tvorba v grafe', 'Klikni na zdrojovy stav, potom na cielovy stav a dopln symbol v paneli nad grafom. Pre epsilon mozes napisat epsilon alebo pouzit samostatne tlacidlo.'),
+								_Utils_Tuple2('Klik alebo drag', 'Kratky klik na stav sluzi na tvorbu prechodu. Tah mysi posuva stav po platne.'),
+								_Utils_Tuple2('Zrusenie cez Esc', 'Ak mas rozpracovany prechod vytvarany klikmi v grafe, stlacenim Esc alebo tlacidlom Zrusit ho okamzite zrusis.'),
+								_Utils_Tuple2('Symbol prechodu', 'Pole Symbol akceptuje lubovolny textovy symbol. Ak napises epsilon, eps alebo ε, vytvori sa epsilon prechod a symbol sa nezaradi do abecedy.'),
+								_Utils_Tuple2('Samostatne tlacidlo', 'V klasickom editore aj v paneli nad grafom je tlacidlo na okamzite pridanie epsilon prechodu bez pisania symbolu.'),
 								_Utils_Tuple2('Zoznam prechodov', 'Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom.'),
-								_Utils_Tuple2('DFA vs NFA', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo ε prechody, automat je NFA a cast algoritmov sa zablokuje.')
+								_Utils_Tuple2('DFA vs NFA', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo epsilon prechody, automat je NFA a cast algoritmov sa zablokuje.')
 							]))
 					]));
 		case 'GuideSimulationTab':
@@ -9363,7 +9365,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Krok', 'Vykona presne jeden prechod a posunie citanie o jeden symbol.'),
 								_Utils_Tuple2('Auto', 'Spusti prehravanie s nastavitelou rychlostou Slow / Normal / Fast.'),
 								_Utils_Tuple2('Vyhodnot hned', 'Prebehne cely vstup bez medzikrokov.'),
-								_Utils_Tuple2('Reset', 'Vrati simulaciu na zaciatok a nastavi aktualny stav spat na start.')
+								_Utils_Tuple2('Reset', 'Vrati simulaciu na zaciatok a nastavi aktualny stav spat na start.'),
+								_Utils_Tuple2('Podmienka simulacie', 'Simulacia je urcena pre validny DFA. Ak mas NFA alebo epsilon prechody, najprv pouzi NFA -> DFA.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9399,10 +9402,11 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						'Kazdy vysledok prepise aktualne platno.',
 						_List_fromArray(
 							[
-								_Utils_Tuple2('NFA -> DFA', 'Pouziva subset construction vratane epsilon-closure, takže podporuje aj ε prechody.'),
+								_Utils_Tuple2('NFA -> DFA', 'Pouziva subset construction vratane epsilon-closure, takze podporuje aj epsilon prechody.'),
 								_Utils_Tuple2('Minimalizacia', 'Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy.'),
 								_Utils_Tuple2('Komplement', 'Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu.'),
-								_Utils_Tuple2('Zjednotenie a prienik', 'Nacita druhy automat z JSON a spravi produktovu konstrukciu nad spolocnou abecedou.')
+								_Utils_Tuple2('Zjednotenie a prienik', 'Nacita druhy automat z JSON textu alebo zo suboru a spravi produktovu konstrukciu nad spolocnou abecedou.'),
+								_Utils_Tuple2('Po spusteni algoritmu', 'Vysledok prepise aktualny automat, ulozi sa do historie undo/redo a priebezne aj do localStorage.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9412,7 +9416,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 							[
 								_Utils_Tuple2('Validny automat', 'Start musi existovat, accepting stavy musia byt v states a prechody mozu odkazovat len na existujuce stavy.'),
 								_Utils_Tuple2('Deterministicky vstup', 'Minimalizacia, komplement, zjednotenie, prienik aj simulacia ocakavaju validny DFA.'),
-								_Utils_Tuple2('Pouzita abeceda', 'Pri produktovych operaciach sa pracuje so spolocnou abecedou oboch automatov.')
+								_Utils_Tuple2('Pouzita abeceda', 'Pri produktovych operaciach sa pracuje so spolocnou abecedou oboch automatov.'),
+								_Utils_Tuple2('Epsilon vstup', 'Ak vstup obsahuje epsilon prechody, korektny postup je najprv spustit NFA -> DFA a az potom dalsie DFA algoritmy.')
 							]))
 					]));
 		case 'GuideDataTab':
@@ -9428,7 +9433,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						$author$project$Main$viewGuideSummaryCard,
 						'fas fa-file-code',
 						'JSON, import a export',
-						'Automaty vies serializovat do JSON, nacitat zo suboru a exportovat aj samotny diagram.',
+						'Automaty vies serializovat do JSON, nacitat zo suboru, automaticky obnovit po refreshi a exportovat aj samotny diagram.',
 						_List_fromArray(
 							['JSON text', 'JSON subor', 'SVG', 'PNG'])),
 						A3(
@@ -9443,7 +9448,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Import zo suboru', 'Vybrat JSON subor nacita obsah z disku do importneho pola.'),
 								_Utils_Tuple2('Druhy automat', 'Pri A U B a A n B vies druhy automat vlozit ako text alebo vybrat ako subor.'),
 								_Utils_Tuple2('Export grafu', 'Diagram vies ulozit ako SVG aj PNG.'),
-								_Utils_Tuple2('Automaticke obnovenie', 'Posledny automat sa priebezne uklada do localStorage, takže po refreshi sa automaticky obnovi.')
+								_Utils_Tuple2('Automaticke obnovenie', 'Posledny automat sa priebezne uklada do localStorage, takze po refreshi sa automaticky obnovi bez dalsieho klikania.'),
+								_Utils_Tuple2('Kedy sa uklada', 'Ukladanie prebieha po realnej zmene automatu, nie pri kazdom pohybe mysi pocas dragovania.')
 							])),
 						A3(
 						$author$project$Main$viewGuideInfoGrid,
@@ -9456,7 +9462,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('transitions', 'Pole prechodov tvaru { from, symbol, to }.'),
 								_Utils_Tuple2('start', 'Jediny startovaci stav.'),
 								_Utils_Tuple2('accepting', 'Zoznam akceptacnych stavov.'),
-								_Utils_Tuple2('positions', 'Suradnice uzlov na platne.')
+								_Utils_Tuple2('positions', 'Suradnice uzlov na platne.'),
+								_Utils_Tuple2('epsilon v JSON', 'Epsilon prechod sa v JSON uklada ako prazdny retazec v poli symbol.')
 							])),
 						A2($author$project$Main$viewGuideCodeBlock, 'Priklad validneho JSON', '{\n  \"states\": [0, 1],\n  \"alphabet\": [\"0\", \"1\"],\n  \"transitions\": [\n    { \"from\": 0, \"symbol\": \"0\", \"to\": 1 },\n    { \"from\": 0, \"symbol\": \"1\", \"to\": 0 }\n  ],\n  \"start\": 0,\n  \"accepting\": [1],\n  \"positions\": [\n    { \"state\": 0, \"x\": 240, \"y\": 180 },\n    { \"state\": 1, \"x\": 420, \"y\": 180 }\n  ]\n}')
 					]));
@@ -9486,7 +9493,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Start nie je v states', 'Start odkazuje na stav, ktory v mnozine states neexistuje.'),
 								_Utils_Tuple2('Akceptacne stavy mimo states', 'Niektory stav v poli accepting sa nenachadza v states.'),
 								_Utils_Tuple2('Prechody na neexistujuce stavy', 'Hrana odkazuje na stav, ktory nie je definovany.'),
-								_Utils_Tuple2('Symboly mimo abecedy', 'JSON obsahuje symboly, ktore nie su uvedene v alphabet.')
+								_Utils_Tuple2('Symboly mimo abecedy', 'JSON obsahuje symboly, ktore nie su uvedene v alphabet. Vynimkou je prazdny symbol pouzity pre epsilon prechod.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9495,8 +9502,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						_List_fromArray(
 							[
 								_Utils_Tuple2('DFA only', 'Simulacia slova, minimalizacia, komplement, zjednotenie a prienik su urcene pre validny DFA.'),
-								_Utils_Tuple2('Nedeterministicke prechody', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo ε prechody, treba najprv spustit NFA -> DFA.'),
-								_Utils_Tuple2('Epsilon prechody', 'Epsilon prechody su podporene pri prevode NFA -> DFA, ale automat s ε hranami sa stale sprava ako NFA.'),
+								_Utils_Tuple2('Nedeterministicke prechody', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo epsilon prechody, treba najprv spustit NFA -> DFA.'),
+								_Utils_Tuple2('Epsilon prechody', 'Epsilon prechody su podporene pri prevode NFA -> DFA, ale automat s epsilon hranami sa stale sprava ako NFA.'),
 								_Utils_Tuple2('Neplatny JSON druheho automatu', 'Pri mnozinovych operaciach musi byt aj druhy automat v korektnom JSON formate.')
 							]))
 					]));
@@ -9524,8 +9531,9 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 							[
 								_Utils_Tuple2('Datovy model', 'Automat tvoria stavy, abeceda, prechody, start, accepting a positions.'),
 								_Utils_Tuple2('Historia zmien', 'Editor uklada zmeny do undo/redo historie.'),
-								_Utils_Tuple2('Vizualizacia', 'Graf sa kresli ako SVG s loopmi, obojsmernymi hranami a zoskupenymi labelmi.'),
-								_Utils_Tuple2('Abeceda', 'Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly.')
+								_Utils_Tuple2('Vizualizacia', 'Graf sa kresli ako SVG s loopmi, obojsmernymi hranami, zoskupenymi labelmi a klikacou tvorbou prechodov.'),
+								_Utils_Tuple2('Abeceda', 'Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly.'),
+								_Utils_Tuple2('Perzistencia', 'Obnovenie po refreshi je riesene cez localStorage a porty medzi Elm a index.html.')
 							])),
 						A3(
 						$author$project$Main$viewGuideInfoGrid,
@@ -9534,7 +9542,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						_List_fromArray(
 							[
 								_Utils_Tuple2('DFA operacie', 'Simulacia, minimalizacia, komplement, zjednotenie a prienik ocakavaju validny DFA.'),
-								_Utils_Tuple2('NFA -> DFA', 'Subset construction podporuje aj ε prechody cez epsilon-closure.'),
+								_Utils_Tuple2('NFA -> DFA', 'Subset construction podporuje aj epsilon prechody cez epsilon-closure.'),
 								_Utils_Tuple2('Prepis vysledku', 'Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export.'),
 								_Utils_Tuple2('Perzistencia', 'Aktualny automat sa uklada do localStorage pre pohodlne obnovenie po refreshi.'),
 								_Utils_Tuple2('Ciselne ID stavov', 'Stavy su identifikovane cislami a novy stav dostane dalsie volne ID.')
@@ -10978,7 +10986,7 @@ var $author$project$Main$viewGraphTransitionComposer = function (draft) {
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('Zdrojovy stav je vybrany. Klikni v grafe na cielovy stav a potom zadaj symbol alebo ε.')
+											$elm$html$Html$text('Zdrojovy stav je vybrany. Klikni v grafe na cielovy stav a potom zadaj symbol alebo epsilon.')
 										]))
 								])),
 							A2(
@@ -11043,7 +11051,7 @@ var $author$project$Main$viewGraphTransitionComposer = function (draft) {
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('Zadaj symbol prechodu. Ak chces epsilon prechod, napis ε alebo pouzi samostatne tlacidlo.')
+											$elm$html$Html$text('Zadaj symbol prechodu. Ak chces epsilon prechod, napis epsilon alebo pouzi samostatne tlacidlo.')
 										]))
 								])),
 							A2(
@@ -11080,7 +11088,7 @@ var $author$project$Main$viewGraphTransitionComposer = function (draft) {
 									$elm$html$Html$Attributes$class('w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400'),
 									$elm$html$Html$Attributes$value(draft.symbol),
 									$elm$html$Html$Events$onInput($author$project$Main$GraphTransitionSymbolChanged),
-									$elm$html$Html$Attributes$placeholder('napr. 0, a, x alebo ε')
+									$elm$html$Html$Attributes$placeholder('napr. 0, a, x alebo epsilon')
 								]),
 							_List_Nil),
 							A2(
@@ -11117,7 +11125,7 @@ var $author$project$Main$viewGraphTransitionComposer = function (draft) {
 											$elm$html$Html$Attributes$class('fas fa-wave-square mr-2')
 										]),
 									_List_Nil),
-									$elm$html$Html$text('ε prechod')
+									$elm$html$Html$text('epsilon prechod')
 								]))
 						]))
 				]));
