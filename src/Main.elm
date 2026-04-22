@@ -12,7 +12,7 @@ import Dict
 import Editor.Update as Ed
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (on, onClick, onInput)
 import Json.Decode as D
 import Json.Encode as E
 import Set
@@ -98,6 +98,43 @@ type alias GraphTransitionDraft =
     }
 
 
+type ConsoleKind
+    = ConsoleInfo
+    | ConsoleSuccess
+    | ConsoleWarning
+    | ConsoleError
+    | ConsoleAlgorithm
+
+
+type alias ConsoleEntry =
+    { id : Int
+    , title : String
+    , body : List String
+    , kind : ConsoleKind
+    }
+
+
+type alias ConsoleResizeState =
+    { startY : Float
+    , startHeight : Float
+    }
+
+
+type alias CanvasView =
+    { zoom : Float
+    , panX : Float
+    , panY : Float
+    }
+
+
+type alias CanvasPanState =
+    { startX : Float
+    , startY : Float
+    , startPanX : Float
+    , startPanY : Float
+    }
+
+
 type SimulationStatus
     = SimReady
     | SimRunning
@@ -143,6 +180,12 @@ type alias Model =
     , editorSubTab : EditorSubTab
     , algorithmsSubTab : AlgorithmsSubTab
     , dragState : DragState
+    , canvasView : CanvasView
+    , canvasPan : Maybe CanvasPanState
+    , consoleEntries : List ConsoleEntry
+    , nextConsoleId : Int
+    , consoleHeight : Float
+    , consoleResize : Maybe ConsoleResizeState
     }
 
 
@@ -395,6 +438,842 @@ dfaOnlyMessage actionLabel =
 invalidAutomatonMessage : String -> List V.Error -> String
 invalidAutomatonMessage actionLabel errs =
     actionLabel ++ " nie je mozne spustit: " ++ renderErrors errs
+
+
+consoleLimit : Int
+consoleLimit =
+    80
+
+
+graphBaseWidth : Float
+graphBaseWidth =
+    1220
+
+
+graphBaseHeight : Float
+graphBaseHeight =
+    840
+
+
+formatState : A.StateId -> String
+formatState stateId =
+    "q" ++ String.fromInt stateId
+
+
+formatStateSet : List A.StateId -> String
+formatStateSet states =
+    let
+        content =
+            states
+                |> List.sort
+                |> List.map formatState
+                |> String.join ", "
+    in
+    if String.isEmpty content then
+        "{}"
+
+    else
+        "{ " ++ content ++ " }"
+
+
+formatAlphabet : List String -> String
+formatAlphabet alphabet =
+    if List.isEmpty alphabet then
+        "{}"
+
+    else
+        "{ " ++ String.join ", " alphabet ++ " }"
+
+
+slovakCount : Int -> String -> String -> String -> String
+slovakCount count one few many =
+    String.fromInt count
+        ++ " "
+        ++ (if count == 1 then
+                one
+
+            else if count >= 2 && count <= 4 then
+                few
+
+            else
+                many
+           )
+
+
+stateCountText : Int -> String
+stateCountText count =
+    slovakCount count "stav" "stavy" "stavov"
+
+
+transitionCountText : Int -> String
+transitionCountText count =
+    slovakCount count "prechod" "prechody" "prechodov"
+
+
+symbolCountText : Int -> String
+symbolCountText count =
+    slovakCount count "symbol" "symboly" "symbolov"
+
+
+transitionLabel : A.Transition -> String
+transitionLabel transition =
+    formatState transition.from
+        ++ " --"
+        ++ displaySymbol transition.symbol
+        ++ "--> "
+        ++ formatState transition.to_
+
+
+transitionByIndex : Int -> List A.Transition -> Maybe A.Transition
+transitionByIndex idx transitions =
+    transitions
+        |> List.indexedMap Tuple.pair
+        |> List.filter (\( currentIndex, _ ) -> currentIndex == idx)
+        |> List.head
+        |> Maybe.map Tuple.second
+
+
+transitionKey : A.Transition -> String
+transitionKey transition =
+    String.fromInt transition.from
+        ++ "|"
+        ++ transition.symbol
+        ++ "|"
+        ++ String.fromInt transition.to_
+
+
+transitionMultiset : List A.Transition -> Dict.Dict String ( Int, A.Transition )
+transitionMultiset transitions =
+    transitions
+        |> List.foldl
+            (\transition acc ->
+                let
+                    key =
+                        transitionKey transition
+
+                    nextCount =
+                        case Dict.get key acc of
+                            Just ( count, _ ) ->
+                                count + 1
+
+                            Nothing ->
+                                1
+                in
+                Dict.insert key ( nextCount, transition ) acc
+            )
+            Dict.empty
+
+
+transitionDiff : List A.Transition -> List A.Transition -> ( List A.Transition, List A.Transition )
+transitionDiff beforeTransitions afterTransitions =
+    let
+        beforeMap =
+            transitionMultiset beforeTransitions
+
+        afterMap =
+            transitionMultiset afterTransitions
+
+        expandedPositiveDiff source other =
+            source
+                |> Dict.toList
+                |> List.concatMap
+                    (\( key, ( count, transition ) ) ->
+                        let
+                            otherCount =
+                                other
+                                    |> Dict.get key
+                                    |> Maybe.map Tuple.first
+                                    |> Maybe.withDefault 0
+
+                            diffCount =
+                                count - otherCount
+                        in
+                        if diffCount > 0 then
+                            List.repeat diffCount transition
+
+                        else
+                            []
+                    )
+    in
+    ( expandedPositiveDiff afterMap beforeMap
+    , expandedPositiveDiff beforeMap afterMap
+    )
+
+
+newestAddedTransition : A.Automaton -> A.Automaton -> Maybe A.Transition
+newestAddedTransition before after =
+    if List.length after.transitions > List.length before.transitions then
+        after.transitions
+            |> List.reverse
+            |> List.head
+
+    else
+        Nothing
+
+
+viewBoxForCanvas : CanvasView -> String
+viewBoxForCanvas canvasView =
+    let
+        width =
+            graphBaseWidth / canvasView.zoom
+
+        height =
+            graphBaseHeight / canvasView.zoom
+    in
+    String.join " "
+        [ String.fromFloat canvasView.panX
+        , String.fromFloat canvasView.panY
+        , String.fromFloat width
+        , String.fromFloat height
+        ]
+
+
+zoomCanvasTo : Float -> CanvasView -> CanvasView
+zoomCanvasTo requestedZoom canvasView =
+    let
+        nextZoom =
+            clamp 0.45 2.6 requestedZoom
+
+        currentWidth =
+            graphBaseWidth / canvasView.zoom
+
+        currentHeight =
+            graphBaseHeight / canvasView.zoom
+
+        nextWidth =
+            graphBaseWidth / nextZoom
+
+        nextHeight =
+            graphBaseHeight / nextZoom
+
+        centerX =
+            canvasView.panX + currentWidth / 2
+
+        centerY =
+            canvasView.panY + currentHeight / 2
+    in
+    { zoom = nextZoom
+    , panX = centerX - nextWidth / 2
+    , panY = centerY - nextHeight / 2
+    }
+
+
+appendConsoleEntry : ConsoleKind -> String -> List String -> Model -> Model
+appendConsoleEntry kind title body model =
+    let
+        entry =
+            { id = model.nextConsoleId
+            , title = title
+            , body = body
+            , kind = kind
+            }
+    in
+    { model
+        | consoleEntries = List.take consoleLimit (entry :: model.consoleEntries)
+        , nextConsoleId = model.nextConsoleId + 1
+    }
+
+
+consoleTitleForMsg : Msg -> String
+consoleTitleForMsg msg =
+    case msg of
+        Editor _ ->
+            "Editor"
+
+        SavedAutomatonLoaded _ ->
+            "localStorage"
+
+        Undo ->
+            "Undo"
+
+        Redo ->
+            "Redo"
+
+        CheckWord ->
+            "Simulacia"
+
+        ResetSimulation ->
+            "Simulacia"
+
+        StepSimulation ->
+            "Simulacia"
+
+        ToggleSimulationPlayback ->
+            "Simulacia"
+
+        AddTransitionClicked ->
+            "Prechod"
+
+        AddEpsilonTransitionClicked ->
+            "Epsilon prechod"
+
+        ConfirmGraphTransition ->
+            "Prechod z grafu"
+
+        ConfirmGraphEpsilonTransition ->
+            "Epsilon z grafu"
+
+        CancelGraphTransition ->
+            "Graf"
+
+        GlobalKeyPressed _ ->
+            "Klavesnica"
+
+        ExportJson ->
+            "JSON export"
+
+        DownloadJsonFile ->
+            "JSON subor"
+
+        ExportGraphSvg ->
+            "SVG export"
+
+        ExportGraphPng ->
+            "PNG export"
+
+        PickJsonFile ->
+            "JSON import"
+
+        PickOtherJsonFile ->
+            "Druhy automat"
+
+        JsonFileLoaded _ ->
+            "JSON subor"
+
+        ImportJson ->
+            "JSON import"
+
+        NfaToDfa ->
+            "NFA -> DFA"
+
+        MinimizeDfa ->
+            "Minimalizacia"
+
+        ComplementDfa ->
+            "Komplement"
+
+        UnionWithOther ->
+            "Zjednotenie"
+
+        IntersectWithOther ->
+            "Prienik"
+
+        GraphMsg Graph.EndDrag ->
+            "Platno"
+
+        GraphMsg _ ->
+            "Graf"
+
+        _ ->
+            "Info"
+
+
+consoleKindForMsg : Msg -> String -> ConsoleKind
+consoleKindForMsg msg infoText =
+    let
+        lowered =
+            String.toLower infoText
+    in
+    if String.contains "chyba" lowered || String.contains "error" lowered || String.contains "neplatny" lowered || String.contains "nie je mozne" lowered || String.contains "iba pre dfa" lowered then
+        ConsoleError
+
+    else
+        case msg of
+            NfaToDfa ->
+                ConsoleAlgorithm
+
+            MinimizeDfa ->
+                ConsoleAlgorithm
+
+            ComplementDfa ->
+                ConsoleAlgorithm
+
+            UnionWithOther ->
+                ConsoleAlgorithm
+
+            IntersectWithOther ->
+                ConsoleAlgorithm
+
+            ImportJson ->
+                ConsoleSuccess
+
+            DownloadJsonFile ->
+                ConsoleSuccess
+
+            ExportJson ->
+                ConsoleSuccess
+
+            ExportGraphSvg ->
+                ConsoleSuccess
+
+            ExportGraphPng ->
+                ConsoleSuccess
+
+            _ ->
+                ConsoleInfo
+
+
+nfaToDfaConsoleSteps : A.Automaton -> A.Automaton -> List String
+nfaToDfaConsoleSteps before after =
+    let
+        beforeStates =
+            List.length before.states
+
+        beforeTransitions =
+            List.length before.transitions
+
+        afterStates =
+            List.length after.states
+
+        afterTransitions =
+            List.length after.transitions
+
+        epsilonCount =
+            before.transitions
+                |> List.filter (.symbol >> String.isEmpty)
+                |> List.length
+
+        epsilonLine =
+            if epsilonCount == 0 then
+                "3. Vstup neobsahoval epsilon prechody, takze epsilon-closure nemenila mnoziny stavov."
+
+            else
+                "3. Vstup obsahoval " ++ transitionCountText epsilonCount ++ " typu epsilon, preto sa pri kazdej mnozine dopocitala epsilon-closure."
+    in
+    [ "1. Vstupny automat mal " ++ stateCountText beforeStates ++ ", " ++ transitionCountText beforeTransitions ++ " a abecedu " ++ formatAlphabet (usedAlphabet before) ++ "."
+    , "2. Startovacia mnozina DFA vznikla ako epsilon-closure startovacieho stavu."
+    , epsilonLine
+    , "4. Vysledny DFA ma " ++ stateCountText afterStates ++ ", " ++ transitionCountText afterTransitions ++ " a accepting stavy " ++ formatStateSet after.accepting ++ "."
+    ]
+
+
+minimizeConsoleSteps : A.Automaton -> A.Automaton -> List String
+minimizeConsoleSteps before after =
+    let
+        beforeCount =
+            List.length before.states
+
+        afterCount =
+            List.length after.states
+
+        stateSummary =
+            if beforeCount == afterCount then
+                "4. Pocet stavov sa nezmenil: automat uz mal " ++ stateCountText afterCount ++ "."
+
+            else if afterCount < beforeCount then
+                "4. Pocet stavov sa zmensil z " ++ stateCountText beforeCount ++ " na " ++ stateCountText afterCount ++ "."
+
+            else
+                "4. Vysledok ma " ++ stateCountText afterCount ++ ", pretoze pred minimalizaciou bolo potrebne doplnit totalny DFA."
+    in
+    [ "1. Overil sa validny DFA nad abecedou " ++ formatAlphabet before.alphabet ++ "."
+    , "2. Pred minimalizaciou mal automat " ++ stateCountText beforeCount ++ " a " ++ transitionCountText (List.length before.transitions) ++ "."
+    , "3. Stavy sa rozdelili na triedy accepting / neaccepting a potom sa triedy spresnovali podla prechodov."
+    , stateSummary
+    , "5. Vysledok ma " ++ transitionCountText (List.length after.transitions) ++ " a accepting stavy " ++ formatStateSet after.accepting ++ "."
+    ]
+
+
+operationConsoleSteps : String -> A.Automaton -> A.Automaton -> List String
+operationConsoleSteps label before after =
+    [ "1. Spustena operacia: " ++ label ++ "."
+    , "2. Vstupny automat A mal " ++ stateCountText (List.length before.states) ++ ", " ++ transitionCountText (List.length before.transitions) ++ " a abecedu " ++ formatAlphabet before.alphabet ++ "."
+    , "3. Vysledny automat ma " ++ stateCountText (List.length after.states) ++ ", " ++ transitionCountText (List.length after.transitions) ++ " a abecedu " ++ formatAlphabet after.alphabet ++ "."
+    , "4. Accepting stavy vysledku: " ++ formatStateSet after.accepting ++ "."
+    ]
+
+
+automatonChangeSummary : A.Automaton -> A.Automaton -> List String
+automatonChangeSummary before after =
+    let
+        addedStates =
+            after.states
+                |> List.filter (\stateId -> not (List.member stateId before.states))
+                |> List.sort
+
+        removedStates =
+            before.states
+                |> List.filter (\stateId -> not (List.member stateId after.states))
+                |> List.sort
+
+        ( addedTransitions, removedTransitions ) =
+            transitionDiff before.transitions after.transitions
+
+        addedAccepting =
+            after.accepting
+                |> List.filter (\stateId -> not (List.member stateId before.accepting))
+                |> List.sort
+
+        removedAccepting =
+            before.accepting
+                |> List.filter (\stateId -> not (List.member stateId after.accepting))
+                |> List.sort
+
+        startLine =
+            if before.start == after.start then
+                []
+
+            else
+                [ "Zmeneny start: "
+                    ++ Maybe.withDefault "-" (Maybe.map formatState before.start)
+                    ++ " -> "
+                    ++ Maybe.withDefault "-" (Maybe.map formatState after.start)
+                    ++ "."
+                ]
+
+        stateLines =
+            (if List.isEmpty addedStates then
+                []
+
+             else
+                [ "Pridane stavy: " ++ formatStateSet addedStates ++ "." ]
+            )
+                ++ (if List.isEmpty removedStates then
+                        []
+
+                    else
+                        [ "Odstranene stavy: " ++ formatStateSet removedStates ++ "." ]
+                   )
+
+        transitionLines =
+            (if List.isEmpty addedTransitions then
+                []
+
+             else
+                [ "Pridane prechody: " ++ String.join ", " (List.map transitionLabel addedTransitions) ++ "." ]
+            )
+                ++ (if List.isEmpty removedTransitions then
+                        []
+
+                    else
+                        [ "Odstranene prechody: " ++ String.join ", " (List.map transitionLabel removedTransitions) ++ "." ]
+                   )
+
+        acceptingLines =
+            (if List.isEmpty addedAccepting then
+                []
+
+             else
+                [ "Pridane akceptacne stavy: " ++ formatStateSet addedAccepting ++ "." ]
+            )
+                ++ (if List.isEmpty removedAccepting then
+                        []
+
+                    else
+                        [ "Odstranene akceptacne stavy: " ++ formatStateSet removedAccepting ++ "." ]
+                   )
+    in
+    stateLines ++ transitionLines ++ startLine ++ acceptingLines
+
+
+withChangeSummary : A.Automaton -> A.Automaton -> List String -> List String
+withChangeSummary before after lines =
+    let
+        summary =
+            automatonChangeSummary before after
+    in
+    if List.isEmpty summary then
+        lines
+
+    else
+        lines ++ ("Zmeny automatu:" :: summary)
+
+
+complementConsoleSteps : A.Automaton -> A.Automaton -> List String
+complementConsoleSteps before after =
+    [ "1. Vstupny DFA mal " ++ stateCountText (List.length before.states) ++ " a accepting stavy " ++ formatStateSet before.accepting ++ "."
+    , "2. Automat sa najprv totalizoval nad abecedou " ++ formatAlphabet before.alphabet ++ ", aby bol komplement korektny."
+    , "3. Accepting a neaccepting stavy sa prehodili."
+    , "4. Vysledok ma accepting stavy " ++ formatStateSet after.accepting ++ " a " ++ transitionCountText (List.length after.transitions) ++ "."
+    ]
+
+
+addedTransitionConsoleSteps : A.Automaton -> A.Automaton -> String -> List String
+addedTransitionConsoleSteps before after fallbackInfo =
+    case newestAddedTransition before after of
+        Just transition ->
+            [ "Pridany prechod " ++ transitionLabel transition ++ "." ]
+
+        Nothing ->
+            [ fallbackInfo ]
+
+
+editorConsoleSteps : Ed.Msg -> A.Automaton -> A.Automaton -> String -> List String
+editorConsoleSteps editorMsg before after fallbackInfo =
+    case editorMsg of
+        Ed.AddState ->
+            let
+                addedStates =
+                    after.states
+                        |> List.filter (\stateId -> not (List.member stateId before.states))
+            in
+            case addedStates of
+                stateId :: _ ->
+                    [ "Pridany stav " ++ formatState stateId ++ "." ]
+
+                [] ->
+                    [ fallbackInfo ]
+
+        Ed.RemoveState stateId ->
+            [ "Odstraneny stav " ++ formatState stateId ++ " aj jeho suvisiace prechody." ]
+
+        Ed.ToggleAccepting stateId ->
+            if List.member stateId after.accepting then
+                [ formatState stateId ++ " je teraz akceptacny stav." ]
+
+            else
+                [ formatState stateId ++ " uz nie je akceptacny stav." ]
+
+        Ed.SetStart maybeState ->
+            case maybeState of
+                Just stateId ->
+                    [ "Startovaci stav nastaveny na " ++ formatState stateId ++ "." ]
+
+                Nothing ->
+                    [ "Startovaci stav bol zruseny." ]
+
+        Ed.AddTransition from symbol to_ ->
+            addedTransitionConsoleSteps before after ("Pridany prechod " ++ transitionLabel { from = from, symbol = symbol, to_ = to_ } ++ ".")
+
+        Ed.RemoveTransition idx ->
+            case transitionByIndex idx before.transitions of
+                Just transition ->
+                    [ "Odstraneny prechod " ++ transitionLabel transition ++ "." ]
+
+                Nothing ->
+                    [ fallbackInfo ]
+
+        Ed.MoveState stateId _ _ ->
+            [ "Pozicia stavu " ++ formatState stateId ++ " bola ulozena." ]
+
+
+simulationConsoleSteps : Simulation -> List String
+simulationConsoleSteps simulation =
+    let
+        wordText =
+            if List.isEmpty simulation.symbols then
+                "ε"
+
+            else
+                String.join "" simulation.symbols
+
+        stateText =
+            simulation.currentState
+                |> Maybe.map formatState
+                |> Maybe.withDefault "-"
+    in
+    [ simulationStatusText simulation
+    , "Vstup: " ++ wordText
+    , "Koncovy stav: " ++ stateText
+    , "Precitané symboly: " ++ String.fromInt simulation.currentIndex ++ " / " ++ String.fromInt (List.length simulation.symbols)
+    ]
+
+
+consoleBodyForMsg : Msg -> Model -> Model -> List String
+consoleBodyForMsg msg previousModel updatedModel =
+    let
+        before =
+            previousModel.history.present
+
+        after =
+            updatedModel.history.present
+    in
+    case msg of
+        Editor editorMsg ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (editorConsoleSteps editorMsg before after updatedModel.msgInfo)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        AddTransitionClicked ->
+            withChangeSummary before after (addedTransitionConsoleSteps before after updatedModel.msgInfo)
+
+        AddEpsilonTransitionClicked ->
+            withChangeSummary before after (addedTransitionConsoleSteps before after updatedModel.msgInfo)
+
+        ConfirmGraphTransition ->
+            withChangeSummary before after (addedTransitionConsoleSteps before after updatedModel.msgInfo)
+
+        ConfirmGraphEpsilonTransition ->
+            withChangeSummary before after (addedTransitionConsoleSteps before after updatedModel.msgInfo)
+
+        CheckWord ->
+            if updatedModel.simulation.status == SimAccepted || updatedModel.simulation.status == SimRejected || updatedModel.simulation.status == SimStuck then
+                simulationConsoleSteps updatedModel.simulation
+
+            else
+                [ updatedModel.msgInfo ]
+
+        StepSimulation ->
+            if updatedModel.simulation.status == SimAccepted || updatedModel.simulation.status == SimRejected || updatedModel.simulation.status == SimStuck then
+                simulationConsoleSteps updatedModel.simulation
+
+            else
+                [ updatedModel.msgInfo ]
+
+        SimulationTick _ ->
+            if updatedModel.simulation.status == SimAccepted || updatedModel.simulation.status == SimRejected || updatedModel.simulation.status == SimStuck then
+                simulationConsoleSteps updatedModel.simulation
+
+            else
+                [ updatedModel.msgInfo ]
+
+        ToggleSimulationPlayback ->
+            if previousModel.simulation.autoplay && not updatedModel.simulation.autoplay then
+                simulationConsoleSteps updatedModel.simulation
+
+            else
+                [ updatedModel.msgInfo ]
+
+        NfaToDfa ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (nfaToDfaConsoleSteps before after)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        MinimizeDfa ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (minimizeConsoleSteps before after)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        ComplementDfa ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (complementConsoleSteps before after)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        UnionWithOther ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (operationConsoleSteps "zjednotenie A U B" before after)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        IntersectWithOther ->
+            if automatonSignature before /= automatonSignature after then
+                withChangeSummary before after (operationConsoleSteps "prienik A n B" before after)
+
+            else
+                [ updatedModel.msgInfo ]
+
+        _ ->
+            [ updatedModel.msgInfo ]
+
+
+shouldAppendConsole : Msg -> Model -> Model -> Bool
+shouldAppendConsole msg previousModel updatedModel =
+    let
+        automatonChanged =
+            automatonSignature previousModel.history.present /= automatonSignature updatedModel.history.present
+    in
+    case msg of
+        FromChanged _ ->
+            False
+
+        SymChanged _ ->
+            False
+
+        ToChanged _ ->
+            False
+
+        ImportTextChanged _ ->
+            False
+
+        OtherJsonChanged _ ->
+            False
+
+        WordChanged _ ->
+            False
+
+        SetPlaybackSpeed _ ->
+            False
+
+        SimulationTick _ ->
+            updatedModel.simulation.status == SimAccepted || updatedModel.simulation.status == SimRejected || updatedModel.simulation.status == SimStuck
+
+        GraphTransitionSymbolChanged _ ->
+            False
+
+        GraphMsg (Graph.Drag _ _) ->
+            False
+
+        GraphMsg (Graph.Pan _ _) ->
+            False
+
+        GraphMsg (Graph.StartPan _ _) ->
+            False
+
+        GraphMsg Graph.EndPan ->
+            False
+
+        GraphMsg (Graph.Wheel _) ->
+            False
+
+        StartConsoleResize _ ->
+            False
+
+        ConsoleResize _ ->
+            False
+
+        EndConsoleResize ->
+            False
+
+        ClearConsole ->
+            False
+
+        CanvasZoomIn ->
+            False
+
+        CanvasZoomOut ->
+            False
+
+        ResetCanvasView ->
+            False
+
+        SelectTab _ ->
+            False
+
+        SelectEditorSubTab _ ->
+            False
+
+        SelectAlgorithmsSubTab _ ->
+            False
+
+        SelectGuideTab _ ->
+            False
+
+        ToggleGuide ->
+            False
+
+        CloseGuide ->
+            False
+
+        CloseGuideAndSelectTab _ ->
+            False
+
+        GraphMsg Graph.NoOp ->
+            False
+
+        _ ->
+            automatonChanged || (previousModel.msgInfo /= updatedModel.msgInfo && not (String.isEmpty (String.trim updatedModel.msgInfo)))
+
+
+appendConsoleForMessage : Msg -> Model -> Model -> Model
+appendConsoleForMessage msg previousModel updatedModel =
+    if shouldAppendConsole msg previousModel updatedModel then
+        appendConsoleEntry
+            (consoleKindForMsg msg updatedModel.msgInfo)
+            (consoleTitleForMsg msg)
+            (consoleBodyForMsg msg previousModel updatedModel)
+            updatedModel
+
+    else
+        updatedModel
 
 
 stopAutoplay : Model -> Model
@@ -691,7 +1570,7 @@ guideTabSubtitle : GuideTab -> String
 guideTabSubtitle guideTab =
     case guideTab of
         GuideEditorTab ->
-            "Prakticky navod na budovanie stavov, prechodov, epsilon hran a upravu grafu priamo na platne."
+            "Prakticky navod na budovanie stavov, prechodov, epsilon hran, zoomu a posunu platna."
 
         GuideSimulationTab ->
             "Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu pri validnom DFA."
@@ -706,7 +1585,7 @@ guideTabSubtitle guideTab =
             "Najcastejsie validacne problemy a co presne znamenaju pri tvorbe alebo importe automatu."
 
         GuideProjectTab ->
-            "Ako je appka poskladana, co uklada automaticky a ake ma aktualne limity."
+            "Ako je appka poskladana, co uklada automaticky, ako funguje konzola a ake ma aktualne limity."
 
 
 guideTabs : List GuideTab
@@ -725,6 +1604,9 @@ init =
     let
         initialAutomaton =
             ensureAlphabetCoverage A.dfaExample
+
+        welcomeText =
+            "Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova."
     in
     { history = Ed.initHistory initialAutomaton
     , inputWord = ""
@@ -734,7 +1616,7 @@ init =
     , guideTab = GuideEditorTab
     , jsonFileTarget = MainImportFile
     , graphTransitionDraft = Nothing
-    , msgInfo = "Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova."
+    , msgInfo = welcomeText
     , fromSel = "0"
     , symSel = ""
     , toSel = "0"
@@ -745,6 +1627,18 @@ init =
     , editorSubTab = StatesSub
     , algorithmsSubTab = AlgoBasicSub
     , dragState = { dragging = Nothing, offsetX = 0, offsetY = 0, original = Nothing, moved = False }
+    , canvasView = { zoom = 1, panX = 0, panY = 0 }
+    , canvasPan = Nothing
+    , consoleEntries =
+        [ { id = 0
+          , title = "Konzola pripravena"
+          , body = [ welcomeText, "Hlasenia, chyby a kroky algoritmov sa budu vypisovat sem." ]
+          , kind = ConsoleInfo
+          }
+        ]
+    , nextConsoleId = 1
+    , consoleHeight = 220
+    , consoleResize = Nothing
     }
 
 
@@ -792,6 +1686,13 @@ type Msg
     | SelectTab Tab
     | SelectEditorSubTab EditorSubTab
     | SelectAlgorithmsSubTab AlgorithmsSubTab
+    | CanvasZoomIn
+    | CanvasZoomOut
+    | ResetCanvasView
+    | StartConsoleResize Float
+    | ConsoleResize Float
+    | EndConsoleResize
+    | ClearConsole
     | GraphMsg Graph.Msg
 
 
@@ -827,6 +1728,36 @@ update msg model =
 
         SelectAlgorithmsSubTab subTab ->
             { model | algorithmsSubTab = subTab }
+
+        CanvasZoomIn ->
+            { model | canvasView = zoomCanvasTo (model.canvasView.zoom * 1.18) model.canvasView }
+
+        CanvasZoomOut ->
+            { model | canvasView = zoomCanvasTo (model.canvasView.zoom / 1.18) model.canvasView }
+
+        ResetCanvasView ->
+            { model | canvasView = { zoom = 1, panX = 0, panY = 0 }, canvasPan = Nothing }
+
+        StartConsoleResize clientY ->
+            { model | consoleResize = Just { startY = clientY, startHeight = model.consoleHeight } }
+
+        ConsoleResize clientY ->
+            case model.consoleResize of
+                Just resizeState ->
+                    let
+                        nextHeight =
+                            resizeState.startHeight - (clientY - resizeState.startY)
+                    in
+                    { model | consoleHeight = clamp 120 460 nextHeight }
+
+                Nothing ->
+                    model
+
+        EndConsoleResize ->
+            { model | consoleResize = Nothing }
+
+        ClearConsole ->
+            { model | consoleEntries = [] }
 
         ToggleGuide ->
             if model.guideOpen then
@@ -909,7 +1840,7 @@ update msg model =
             }
 
         CheckWord ->
-            case guardDeterministic "Simulacia slova" model.history.present model of
+            case guardValidDeterministic "Simulacia slova" model.history.present model of
                 Just guardedModel ->
                     guardedModel
 
@@ -932,7 +1863,7 @@ update msg model =
             { model | simulation = simulation, msgInfo = simulationStatusText simulation }
 
         StepSimulation ->
-            case guardDeterministic "Krokovanie simulacie" model.history.present model of
+            case guardValidDeterministic "Krokovanie simulacie" model.history.present model of
                 Just guardedModel ->
                     guardedModel
 
@@ -944,7 +1875,7 @@ update msg model =
                     { model | simulation = nextSimulation, msgInfo = simulationStatusText nextSimulation }
 
         ToggleSimulationPlayback ->
-            case guardDeterministic "Automaticke prehravanie" model.history.present model of
+            case guardValidDeterministic "Automaticke prehravanie" model.history.present model of
                 Just guardedModel ->
                     guardedModel
 
@@ -1328,15 +2259,21 @@ update msg model =
                     case ( model.dragState.dragging, model.dragState.original ) of
                         ( Just stateId, Just originalAutomaton ) ->
                             let
-                                newX =
-                                    clamp 48 1172 (clientX - model.dragState.offsetX)
-
-                                newY =
-                                    clamp 48 792 (clientY - model.dragState.offsetY)
-
                                 originalPosition =
                                     Dict.get stateId originalAutomaton.positions
-                                        |> Maybe.withDefault { x = newX, y = newY }
+                                        |> Maybe.withDefault { x = 100, y = 100 }
+
+                                startClientX =
+                                    originalPosition.x + model.dragState.offsetX
+
+                                startClientY =
+                                    originalPosition.y + model.dragState.offsetY
+
+                                newX =
+                                    clamp 48 1172 (originalPosition.x + (clientX - startClientX) / model.canvasView.zoom)
+
+                                newY =
+                                    clamp 48 792 (originalPosition.y + (clientY - startClientY) / model.canvasView.zoom)
 
                                 movedEnough =
                                     model.dragState.moved
@@ -1399,6 +2336,41 @@ update msg model =
                 Graph.NoOp ->
                     model
 
+                Graph.StartPan clientX clientY ->
+                    { model
+                        | canvasPan =
+                            Just
+                                { startX = clientX
+                                , startY = clientY
+                                , startPanX = model.canvasView.panX
+                                , startPanY = model.canvasView.panY
+                                }
+                    }
+
+                Graph.Pan clientX clientY ->
+                    case model.canvasPan of
+                        Just panState ->
+                            { model
+                                | canvasView =
+                                    { zoom = model.canvasView.zoom
+                                    , panX = panState.startPanX - (clientX - panState.startX) / model.canvasView.zoom
+                                    , panY = panState.startPanY - (clientY - panState.startY) / model.canvasView.zoom
+                                    }
+                            }
+
+                        Nothing ->
+                            model
+
+                Graph.EndPan ->
+                    { model | canvasPan = Nothing }
+
+                Graph.Wheel deltaY ->
+                    if deltaY < 0 then
+                        { model | canvasView = zoomCanvasTo (model.canvasView.zoom * 1.12) model.canvasView }
+
+                    else
+                        { model | canvasView = zoomCanvasTo (model.canvasView.zoom / 1.12) model.canvasView }
+
 
 renderErrors : List V.Error -> String
 renderErrors errs =
@@ -1440,8 +2412,8 @@ renderErrors errs =
 
 view : Model -> Html Msg
 view model =
-    div [ class "min-h-screen bg-[#120f0d] text-[#f5ede3]" ]
-        [ div [ class "flex min-h-screen" ]
+    div [ class "h-screen overflow-hidden bg-[#120f0d] text-[#f5ede3]" ]
+        [ div [ class "flex h-screen overflow-hidden" ]
             [ viewSidebar model
             , viewMain model
             ]
@@ -1462,7 +2434,7 @@ viewSidebar model =
         alphabetChips =
             usedAlphabet automaton
     in
-    div [ class "w-[400px] shrink-0 border-r border-[#3a2c23] bg-[#15110f]/95 backdrop-blur-xl flex flex-col" ]
+    div [ class "flex h-full w-[400px] shrink-0 flex-col overflow-hidden border-r border-[#3a2c23] bg-[#15110f]/95 backdrop-blur-xl" ]
         [ div [ class "p-6 border-b border-[#3a2c23]" ]
             [ div [ class "rounded-3xl border border-[#3a2c23] bg-gradient-to-br from-[#241d19] via-[#191411] to-[#120f0d] p-5 shadow-2xl" ]
                 [ div [ class "flex items-start justify-between gap-4" ]
@@ -1602,9 +2574,7 @@ viewEditorPanel model automaton =
                                 [ class "w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                                 , onClick AddEpsilonTransitionClicked
                                 ]
-                                [ i [ class "fas fa-wave-square mr-2" ] []
-                                , text "Pridat ε prechod"
-                                ]
+                                [ text "Pridat ε prechod" ]
                             ]
                         ]
                     ]
@@ -2076,42 +3046,36 @@ viewMain model =
         automaton =
             model.history.present
     in
-    div [ class "flex-1 bg-[#120f0d]" ]
-        [ div [ class "h-full overflow-y-auto" ]
-            [ div [ class "mx-auto max-w-[1500px] p-6" ]
-                [ div [ class "rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-5 shadow-2xl shadow-black/20" ]
-                    [ div [ class "mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" ]
-                        [ div []
-                            [ h3 [ class "text-xl font-bold text-[#f5ede3]" ] [ text "Platno automatu" ]
-                            ]
-                        , div [ class "flex flex-wrap gap-3" ]
-                            [ viewToolbarButton "fas fa-book-open" "Guide" "bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] hover:brightness-110" ToggleGuide
-                            , viewToolbarButton "fas fa-undo" "Undo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Undo
-                            , viewToolbarButton "fas fa-redo" "Redo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Redo
-                            ]
-                        ]
-                    , case model.graphTransitionDraft of
-                        Just draft ->
-                            viewGraphTransitionComposer draft
-
-                        Nothing ->
-                            text ""
-                    , if List.isEmpty automaton.states then
-                        div [ class "grid min-h-[840px] place-items-center rounded-[28px] border border-dashed border-[#4b392d] bg-[#16110f]/70 text-center" ]
-                            [ div [ class "max-w-md px-6" ]
-                                [ div [ class "mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20" ]
-                                    [ i [ class "fas fa-project-diagram text-2xl" ] [] ]
-                                , h4 [ class "mt-5 text-2xl font-bold text-[#f5ede3]" ] [ text "Platno je pripravene" ]
-                                , p [ class "mt-3 text-sm leading-7 text-[#bca48d]" ] [ text "Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy." ]
-                                ]
-                            ]
-
-                      else
-                        div [ class "graph-shell overflow-hidden rounded-[28px] border border-[#3a2c23] bg-[#171311]/50 p-3" ]
-                            [ Html.map GraphMsg (Graph.view (graphHighlight model) automaton) ]
-                    ]
-                , viewBottomStats automaton
+    div [ class "flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#120f0d]" ]
+        [ div [ class "shrink-0 border-b border-[#2b211b] bg-[#15110f]/95 px-6 py-4" ]
+            [ div [ class "flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between" ]
+                [ div []
+                    [ h3 [ class "text-xl font-bold text-[#f5ede3]" ] [ text "Platno automatu" ] ]
+                , div [ class "flex flex-wrap items-center gap-3" ]
+                    ([ viewCanvasControlButton "fas fa-minus" "Oddialit" CanvasZoomOut
+                     , div [ class "rounded-2xl border border-[#45352b] bg-[#211914] px-4 py-3 text-sm font-semibold text-[#eadbcf]" ]
+                        [ text (String.fromInt (round (model.canvasView.zoom * 100)) ++ "%") ]
+                     , viewCanvasControlButton "fas fa-plus" "Priblizit" CanvasZoomIn
+                     , viewCanvasControlButton "fas fa-crosshairs" "Reset pohlad" ResetCanvasView
+                     , viewToolbarButton "fas fa-book-open" "Guide" "bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] hover:brightness-110" ToggleGuide
+                     , viewToolbarButton "fas fa-undo" "Undo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Undo
+                     , viewToolbarButton "fas fa-redo" "Redo" "bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]" Redo
+                     ]
+                        ++ [ viewModeBadge automaton ]
+                    )
                 ]
+            ]
+        , div [ class "relative min-h-0 flex-1 overflow-hidden p-5" ]
+            [ div [ class "flex h-full min-h-0 flex-col" ]
+                [ case model.graphTransitionDraft of
+                    Just draft ->
+                        viewGraphTransitionComposer draft
+
+                    Nothing ->
+                        text ""
+                , viewGraphWorkspace model automaton
+                ]
+            , viewConsolePanel model
             ]
         ]
 
@@ -2125,6 +3089,149 @@ viewToolbarButton icon labelText extra buttonMsg =
         [ i [ class icon ] []
         , text labelText
         ]
+
+
+viewCanvasControlButton : String -> String -> Msg -> Html Msg
+viewCanvasControlButton icon titleText buttonMsg =
+    button
+        [ class "inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#3a2c23] bg-[#211914] text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
+        , onClick buttonMsg
+        , title titleText
+        ]
+        [ i [ class icon ] [] ]
+
+
+viewModeBadge : A.Automaton -> Html Msg
+viewModeBadge automaton =
+    let
+        deterministic =
+            V.isDeterministic automaton
+    in
+    div
+        [ class <|
+            "rounded-2xl border px-4 py-3 text-sm font-bold "
+                ++ (if deterministic then
+                        "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+
+                    else
+                        "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                   )
+        ]
+        [ text (if deterministic then "DFA" else "NFA") ]
+
+
+viewGraphWorkspace : Model -> A.Automaton -> Html Msg
+viewGraphWorkspace model automaton =
+    div [ class "min-h-0 flex-1 overflow-hidden rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-4 shadow-2xl shadow-black/20" ]
+        [ if List.isEmpty automaton.states then
+            div [ class "grid h-full place-items-center rounded-[28px] border border-dashed border-[#4b392d] bg-[#16110f]/70 text-center" ]
+                [ div [ class "max-w-md px-6" ]
+                    [ div [ class "mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20" ]
+                        [ i [ class "fas fa-project-diagram text-2xl" ] [] ]
+                    , h4 [ class "mt-5 text-2xl font-bold text-[#f5ede3]" ] [ text "Platno je pripravene" ]
+                    , p [ class "mt-3 text-sm leading-7 text-[#bca48d]" ] [ text "Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy." ]
+                    ]
+                ]
+
+          else
+            div
+                [ class "graph-shell relative h-full overflow-hidden rounded-[28px] border border-[#3a2c23] bg-[#171311]/50"
+                , title "Tahaj prazdne miesto na platne pre posun pohladu."
+                ]
+                [ Html.map GraphMsg (Graph.view (viewBoxForCanvas model.canvasView) (graphHighlight model) automaton)
+                , div [ class "pointer-events-none absolute bottom-4 left-4 rounded-2xl border border-[#45352b] bg-[#120f0d]/85 px-4 py-2 text-xs font-semibold text-[#c9b29a] shadow-lg shadow-black/20" ]
+                    [ text "Tahaj prazdne miesto pre posun, koliesko alebo tlacidla hore menia zoom." ]
+                ]
+        ]
+
+
+viewConsolePanel : Model -> Html Msg
+viewConsolePanel model =
+    div
+        [ class "absolute bottom-0 left-0 right-0 z-30 border-t border-[#2b211b] bg-[#0d0a09]/96 shadow-[0_-18px_50px_rgba(0,0,0,0.42)] backdrop-blur-sm"
+        , style "height" (String.fromFloat model.consoleHeight ++ "px")
+        ]
+        [ div
+            [ class "flex h-full min-h-0 flex-col" ]
+            [ div
+                [ class "group flex h-3 shrink-0 cursor-row-resize items-center justify-center bg-[#15110f] hover:bg-[#211914]"
+                , on "mousedown" (D.field "clientY" D.float |> D.map StartConsoleResize)
+                , title "Tahaj hore alebo dole pre zmenu vysky konzoly"
+                ]
+                [ div [ class "h-1 w-20 rounded-full bg-[#4a392f] transition group-hover:bg-amber-400/70" ] [] ]
+            , div [ class "flex shrink-0 items-center justify-between border-b border-[#2b211b] px-5 py-3" ]
+                [ div []
+                    [ h3 [ class "text-sm font-bold uppercase tracking-[0.16em] text-[#f5ede3]" ] [ text "Konzola" ]
+                    , p [ class "mt-1 text-xs text-[#9f8670]" ] [ text "Hlasenia aplikacie a postup algoritmov." ]
+                    ]
+                , button
+                    [ class "rounded-xl border border-[#3a2c23] bg-[#171210] px-3 py-2 text-xs font-semibold text-[#d8c1aa] transition hover:border-amber-400 hover:text-[#f7ead9]"
+                    , onClick ClearConsole
+                    ]
+                    [ text "Vycistit" ]
+                ]
+            , div [ class "min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-xs leading-6 scrollbar-thin" ]
+                (if List.isEmpty model.consoleEntries then
+                    [ div [ class "rounded-2xl border border-dashed border-[#3a2c23] px-4 py-6 text-center text-[#8f7663]" ]
+                        [ text "Konzola je prazdna." ]
+                    ]
+
+                 else
+                    List.map viewConsoleEntry model.consoleEntries
+                )
+            ]
+        ]
+
+
+viewConsoleEntry : ConsoleEntry -> Html Msg
+viewConsoleEntry entry =
+    div [ class ("mb-3 rounded-2xl border px-4 py-3 " ++ consoleEntryClass entry.kind) ]
+        [ div [ class "mb-2 flex items-center justify-between gap-3" ]
+            [ div [ class "font-sans text-sm font-bold" ] [ text entry.title ]
+            , span [ class "rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] opacity-80" ]
+                [ text (consoleKindLabel entry.kind) ]
+            ]
+        , div [ class "space-y-1 text-[#e9d6c2]" ]
+            (entry.body |> List.map (\line -> div [] [ text line ]))
+        ]
+
+
+consoleEntryClass : ConsoleKind -> String
+consoleEntryClass kind =
+    case kind of
+        ConsoleInfo ->
+            "border-[#3a2c23] bg-[#15110f]"
+
+        ConsoleSuccess ->
+            "border-emerald-500/25 bg-emerald-500/10"
+
+        ConsoleWarning ->
+            "border-amber-500/25 bg-amber-500/10"
+
+        ConsoleError ->
+            "border-rose-500/30 bg-rose-500/10"
+
+        ConsoleAlgorithm ->
+            "border-blue-500/25 bg-blue-500/10"
+
+
+consoleKindLabel : ConsoleKind -> String
+consoleKindLabel kind =
+    case kind of
+        ConsoleInfo ->
+            "info"
+
+        ConsoleSuccess ->
+            "ok"
+
+        ConsoleWarning ->
+            "pozor"
+
+        ConsoleError ->
+            "chyba"
+
+        ConsoleAlgorithm ->
+            "algoritmus"
 
 
 viewGraphTransitionComposer : GraphTransitionDraft -> Html Msg
@@ -2189,9 +3296,7 @@ viewGraphTransitionComposer draft =
                         [ class "rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]"
                         , onClick ConfirmGraphEpsilonTransition
                         ]
-                        [ i [ class "fas fa-wave-square mr-2" ] []
-                        , text "epsilon prechod"
-                        ]
+                        [ text "epsilon prechod" ]
                     ]
                 ]
 
@@ -2286,6 +3391,7 @@ viewGuideTabContent guideTab =
                     , ( "Akceptacny stav", "Fajka prepina akceptacny stav. V grafe ho spoznas podla dvojitej kruznice." )
                     , ( "Odstranenie stavu", "Kos odstrani stav aj vsetky prechody, ktore do neho vedu alebo z neho vychadzaju." )
                     , ( "Presun na platne", "Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie a do localStorage." )
+                    , ( "Zoom a posun platna", "Tlacidlami nad grafom alebo kolieskom mysi vies platno priblizit a oddialit. Prazdne miesto na platne vies tahat mysou." )
                     ]
                 , viewGuideActionTable
                     "Praca s prechodmi"
@@ -2297,6 +3403,7 @@ viewGuideTabContent guideTab =
                     , ( "Symbol prechodu", "Pole Symbol akceptuje lubovolny textovy symbol. Ak napises epsilon, eps alebo ε, vytvori sa epsilon prechod a symbol sa nezaradi do abecedy." )
                     , ( "Samostatne tlacidlo", "V klasickom editore aj v paneli nad grafom je tlacidlo na okamzite pridanie epsilon prechodu bez pisania symbolu." )
                     , ( "Zoznam prechodov", "Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom." )
+                    , ( "Konzolovy zapis", "Editor zapisuje konkretne akcie do konzoly, napr. ktory stav bol pridany alebo ktory prechod bol vytvoreny." )
                     , ( "DFA vs NFA", "Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo epsilon prechody, automat je NFA a cast algoritmov sa zablokuje." )
                     ]
                 ]
@@ -2321,6 +3428,7 @@ viewGuideTabContent guideTab =
                     , ( "Posledny prechod", "Pouzita hrana aj jej label sa po kroku zvyraznia." )
                     , ( "Zaseknutie", "Ak pre aktualny stav a symbol chyba prechod, simulacia sa zastavi na danom mieste." )
                     , ( "DFA obmedzenie", "Krokovanie aj autoplay su urcene pre validny DFA." )
+                    , ( "Konzola", "Vysledok simulacie sa zapise aj do spodnej konzoly spolu so vstupom, koncovym stavom a poctom precitanych symbolov." )
                     ]
                 ]
 
@@ -2331,10 +3439,10 @@ viewGuideTabContent guideTab =
                     "Dostupne algoritmy"
                     "Kazdy vysledok prepise aktualne platno."
                     [ ( "NFA -> DFA", "Pouziva subset construction vratane epsilon-closure, takze podporuje aj epsilon prechody." )
-                    , ( "Minimalizacia", "Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy." )
+                    , ( "Minimalizacia", "Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy. Konzola rozlisi, ci sa pocet stavov zmensil alebo zostal rovnaky." )
                     , ( "Komplement", "Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu." )
                     , ( "Zjednotenie a prienik", "Nacita druhy automat z JSON textu alebo zo suboru a spravi produktovu konstrukciu nad spolocnou abecedou." )
-                    , ( "Po spusteni algoritmu", "Vysledok prepise aktualny automat, ulozi sa do historie undo/redo a priebezne aj do localStorage." )
+                    , ( "Po spusteni algoritmu", "Vysledok prepise aktualny automat, ulozi sa do historie undo/redo, priebezne do localStorage a vypise zhrnutie do konzoly." )
                     ]
                 , viewGuideActionTable
                     "Formalne podmienky"
@@ -2410,6 +3518,7 @@ viewGuideTabContent guideTab =
                     , ( "Vizualizacia", "Graf sa kresli ako SVG s loopmi, obojsmernymi hranami, zoskupenymi labelmi a klikacou tvorbou prechodov." )
                     , ( "Abeceda", "Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly." )
                     , ( "Perzistencia", "Obnovenie po refreshi je riesene cez localStorage a porty medzi Elm a index.html." )
+                    , ( "Konzola", "Konzola je overlay nad platom, takze neodsúva graf. Jej vysku vies menit tahanim hornej listy." )
                     ]
                 , viewGuideInfoGrid
                     "Aktualne limity"
@@ -2418,6 +3527,7 @@ viewGuideTabContent guideTab =
                     , ( "NFA -> DFA", "Subset construction podporuje aj epsilon prechody cez epsilon-closure." )
                     , ( "Prepis vysledku", "Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export." )
                     , ( "Perzistencia", "Aktualny automat sa uklada do localStorage pre pohodlne obnovenie po refreshi." )
+                    , ( "Konzola", "Spodny panel sa da tahat hore alebo dole a zobrazuje hlasenia, chyby, konkretne editacne akcie, vysledky simulacie a zhrnutia algoritmov." )
                     , ( "Ciselne ID stavov", "Stavy su identifikovane cislami a novy stav dostane dalsie volne ID." )
                     ]
                 ]
@@ -2627,6 +3737,28 @@ subscriptions model =
                 Nothing ->
                     Sub.none
 
+        panSubscription =
+            case model.canvasPan of
+                Just _ ->
+                    Sub.batch
+                        [ Browser.Events.onMouseMove (panMoveDecoder |> D.map GraphMsg)
+                        , Browser.Events.onMouseUp (D.succeed (GraphMsg Graph.EndPan))
+                        ]
+
+                Nothing ->
+                    Sub.none
+
+        consoleResizeSubscription =
+            case model.consoleResize of
+                Just _ ->
+                    Sub.batch
+                        [ Browser.Events.onMouseMove (D.field "clientY" D.float |> D.map ConsoleResize)
+                        , Browser.Events.onMouseUp (D.succeed EndConsoleResize)
+                        ]
+
+                Nothing ->
+                    Sub.none
+
         playbackSubscription =
             if model.simulation.autoplay then
                 Browser.Events.onAnimationFrameDelta SimulationTick
@@ -2643,6 +3775,8 @@ subscriptions model =
     in
     Sub.batch
         [ dragSubscription
+        , panSubscription
+        , consoleResizeSubscription
         , playbackSubscription
         , keySubscription
         , jsonFileSelected JsonFileLoaded
@@ -2657,6 +3791,13 @@ mouseMoveDecoder =
         (D.field "clientY" D.float)
 
 
+panMoveDecoder : D.Decoder Graph.Msg
+panMoveDecoder =
+    D.map2 Graph.Pan
+        (D.field "clientX" D.float)
+        (D.field "clientY" D.float)
+
+
 main : Program () Model Msg
 main =
     Browser.element
@@ -2665,8 +3806,11 @@ main =
         , update =
             \message model ->
                 let
-                    updatedModel =
+                    rawUpdatedModel =
                         update message model
+
+                    updatedModel =
+                        appendConsoleForMessage message model rawUpdatedModel
                 in
                 ( updatedModel
                 , Cmd.batch

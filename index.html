@@ -46,6 +46,7 @@
 
         body {
             color: #f5ede3;
+            overflow: hidden;
         }
 
         ::selection {
@@ -83,7 +84,7 @@
         #automaton-canvas {
             display: block;
             width: 100%;
-            height: auto;
+            height: 100%;
             border-radius: 24px;
         }
 
@@ -105,12 +106,29 @@
     <script>
         const STORAGE_KEY = 'elm-automaton-project';
 
+        const readStoredAutomaton = () => {
+            try {
+                return localStorage.getItem(STORAGE_KEY) || '';
+            } catch (error) {
+                console.warn('localStorage read failed:', error);
+                return '';
+            }
+        };
+
+        const saveStoredAutomaton = (jsonText) => {
+            try {
+                localStorage.setItem(STORAGE_KEY, jsonText);
+            } catch (error) {
+                console.warn('localStorage save failed:', error);
+            }
+        };
+
         const app = Elm.Main.init({
             node: document.getElementById('app'),
             flags: null
         });
 
-        const savedAutomaton = localStorage.getItem(STORAGE_KEY) || '';
+        const savedAutomaton = readStoredAutomaton();
         app.ports.savedAutomatonLoaded.send(savedAutomaton);
 
         app.ports.downloadJsonFile.subscribe((jsonText) => {
@@ -147,9 +165,7 @@
             input.click();
         });
 
-        app.ports.saveAutomatonToLocalStorage.subscribe((jsonText) => {
-            localStorage.setItem(STORAGE_KEY, jsonText);
-        });
+        app.ports.saveAutomatonToLocalStorage.subscribe(saveStoredAutomaton);
 
         const serializeGraphSvg = () => {
             const svg = document.getElementById('automaton-canvas');

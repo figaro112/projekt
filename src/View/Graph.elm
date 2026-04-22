@@ -12,6 +12,10 @@ type Msg
     = StartDrag StateId Float Float
     | Drag Float Float
     | EndDrag
+    | StartPan Float Float
+    | Pan Float Float
+    | EndPan
+    | Wheel Float
     | NoOp
 
 
@@ -23,8 +27,8 @@ type alias Highlight =
     }
 
 
-view : Highlight -> Automaton -> Svg Msg
-view highlight a =
+view : String -> Highlight -> Automaton -> Svg Msg
+view canvasViewBox highlight a =
     let
         pos : StateId -> ( Float, Float )
         pos s =
@@ -575,9 +579,11 @@ view highlight a =
     in
     svg
         [ SA.width "100%"
-        , SA.height "840"
-        , SA.viewBox "0 0 1220 840"
+        , SA.height "100%"
+        , SA.viewBox canvasViewBox
         , SA.id "automaton-canvas"
+        , SA.preserveAspectRatio "xMidYMid slice"
+        , SE.on "wheel" wheelDecoder
         ]
         [ defs []
             [ pattern
@@ -671,35 +677,31 @@ view highlight a =
                 ]
             ]
         , rect
-            [ SA.x "12"
-            , SA.y "12"
-            , SA.width "1196"
-            , SA.height "816"
-            , SA.rx "24"
-            , SA.ry "24"
+            [ SA.x "-5000"
+            , SA.y "-5000"
+            , SA.width "10000"
+            , SA.height "10000"
             , SA.fill "rgba(28,22,18,0.96)"
             ]
             []
         , rect
-            [ SA.x "12"
-            , SA.y "12"
-            , SA.width "1196"
-            , SA.height "816"
-            , SA.rx "24"
-            , SA.ry "24"
+            [ SA.x "-5000"
+            , SA.y "-5000"
+            , SA.width "10000"
+            , SA.height "10000"
             , SA.fill "url(#grid)"
+            , SA.cursor "grab"
+            , SE.on "mousedown" panStartDecoder
             ]
             []
         , rect
-            [ SA.x "12"
-            , SA.y "12"
-            , SA.width "1196"
-            , SA.height "816"
-            , SA.rx "24"
-            , SA.ry "24"
+            [ SA.x "-5000"
+            , SA.y "-5000"
+            , SA.width "10000"
+            , SA.height "10000"
             , SA.fill "none"
-            , SA.stroke "rgba(120,89,65,0.58)"
-            , SA.strokeWidth "1.2"
+            , SA.stroke "rgba(120,89,65,0.22)"
+            , SA.strokeWidth "1"
             ]
             []
         , startArrow
@@ -713,3 +715,15 @@ onMouseDown stateId =
     D.map2 (StartDrag stateId)
         (D.field "clientX" D.float)
         (D.field "clientY" D.float)
+
+
+panStartDecoder : D.Decoder Msg
+panStartDecoder =
+    D.map2 StartPan
+        (D.field "clientX" D.float)
+        (D.field "clientY" D.float)
+
+
+wheelDecoder : D.Decoder Msg
+wheelDecoder =
+    D.map Wheel (D.field "deltaY" D.float)

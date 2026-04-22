@@ -4454,6 +4454,239 @@ var $elm$core$Set$toList = function (_v0) {
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
+var $elm$core$Basics$add = _Basics_add;
+var $author$project$Main$consoleLimit = 80;
+var $elm$core$Basics$gt = _Utils_gt;
+var $elm$core$Basics$le = _Utils_le;
+var $elm$core$Basics$sub = _Basics_sub;
+var $elm$core$List$foldl = F3(
+	function (func, acc, list) {
+		foldl:
+		while (true) {
+			if (!list.b) {
+				return acc;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				var $temp$func = func,
+					$temp$acc = A2(func, x, acc),
+					$temp$list = xs;
+				func = $temp$func;
+				acc = $temp$acc;
+				list = $temp$list;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$List$reverse = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
+};
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $author$project$Main$appendConsoleEntry = F4(
+	function (kind, title, body, model) {
+		var entry = {body: body, id: model.nextConsoleId, kind: kind, title: title};
+		return _Utils_update(
+			model,
+			{
+				consoleEntries: A2(
+					$elm$core$List$take,
+					$author$project$Main$consoleLimit,
+					A2($elm$core$List$cons, entry, model.consoleEntries)),
+				nextConsoleId: model.nextConsoleId + 1
+			});
+	});
+var $author$project$Main$SimAccepted = {$: 'SimAccepted'};
+var $author$project$Main$SimRejected = {$: 'SimRejected'};
+var $author$project$Main$SimStuck = {$: 'SimStuck'};
+var $elm$core$Basics$append = _Utils_append;
+var $elm$core$Maybe$Nothing = {$: 'Nothing'};
+var $elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
+	});
+var $elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$List$length = function (xs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, i) {
+				return i + 1;
+			}),
+		0,
+		xs);
+};
+var $author$project$Main$newestAddedTransition = F2(
+	function (before, after) {
+		return (_Utils_cmp(
+			$elm$core$List$length(after.transitions),
+			$elm$core$List$length(before.transitions)) > 0) ? $elm$core$List$head(
+			$elm$core$List$reverse(after.transitions)) : $elm$core$Maybe$Nothing;
+	});
+var $elm$core$Basics$eq = _Utils_equal;
+var $elm$core$String$isEmpty = function (string) {
+	return string === '';
+};
+var $author$project$Main$displaySymbol = function (symbol) {
+	return $elm$core$String$isEmpty(symbol) ? 'ε' : symbol;
+};
+var $elm$core$String$fromInt = _String_fromNumber;
+var $author$project$Main$formatState = function (stateId) {
+	return 'q' + $elm$core$String$fromInt(stateId);
+};
+var $author$project$Main$transitionLabel = function (transition) {
+	return $author$project$Main$formatState(transition.from) + (' --' + ($author$project$Main$displaySymbol(transition.symbol) + ('--> ' + $author$project$Main$formatState(transition.to_))));
+};
+var $author$project$Main$addedTransitionConsoleSteps = F3(
+	function (before, after, fallbackInfo) {
+		var _v0 = A2($author$project$Main$newestAddedTransition, before, after);
+		if (_v0.$ === 'Just') {
+			var transition = _v0.a;
+			return _List_fromArray(
+				[
+					'Pridany prechod ' + ($author$project$Main$transitionLabel(transition) + '.')
+				]);
+		} else {
+			return _List_fromArray(
+				[fallbackInfo]);
+		}
+	});
+var $elm$core$Basics$and = _Basics_and;
 var $elm$core$Result$Err = function (a) {
 	return {$: 'Err', a: a};
 };
@@ -4476,16 +4709,8 @@ var $elm$json$Json$Decode$OneOf = function (a) {
 	return {$: 'OneOf', a: a};
 };
 var $elm$core$Basics$False = {$: 'False'};
-var $elm$core$Basics$add = _Basics_add;
-var $elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$String$all = _String_all;
-var $elm$core$Basics$and = _Basics_and;
-var $elm$core$Basics$append = _Utils_append;
 var $elm$json$Json$Encode$encode = _Json_encode;
-var $elm$core$String$fromInt = _String_fromNumber;
 var $elm$core$String$join = F2(
 	function (sep, chunks) {
 		return A2(
@@ -4504,38 +4729,7 @@ var $elm$json$Json$Decode$indent = function (str) {
 		'\n    ',
 		A2($elm$core$String$split, '\n', str));
 };
-var $elm$core$List$foldl = F3(
-	function (func, acc, list) {
-		foldl:
-		while (true) {
-			if (!list.b) {
-				return acc;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				var $temp$func = func,
-					$temp$acc = A2(func, x, acc),
-					$temp$list = xs;
-				func = $temp$func;
-				acc = $temp$acc;
-				list = $temp$list;
-				continue foldl;
-			}
-		}
-	});
-var $elm$core$List$length = function (xs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, i) {
-				return i + 1;
-			}),
-		0,
-		xs);
-};
 var $elm$core$List$map2 = _List_map2;
-var $elm$core$Basics$le = _Utils_le;
-var $elm$core$Basics$sub = _Basics_sub;
 var $elm$core$List$rangeHelp = F3(
 	function (lo, hi, list) {
 		rangeHelp:
@@ -4587,9 +4781,6 @@ var $elm$core$Char$isDigit = function (_char) {
 };
 var $elm$core$Char$isAlphaNum = function (_char) {
 	return $elm$core$Char$isLower(_char) || ($elm$core$Char$isUpper(_char) || $elm$core$Char$isDigit(_char));
-};
-var $elm$core$List$reverse = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
 };
 var $elm$core$String$uncons = _String_uncons;
 var $elm$json$Json$Decode$errorOneOf = F2(
@@ -4719,14 +4910,8 @@ var $elm$core$Basics$apL = F2(
 	function (f, x) {
 		return f(x);
 	});
-var $elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
-	});
-var $elm$core$Basics$eq = _Utils_equal;
 var $elm$core$Basics$floor = _Basics_floor;
 var $elm$core$Elm$JsArray$length = _JsArray_length;
-var $elm$core$Basics$gt = _Utils_gt;
 var $elm$core$Basics$max = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) > 0) ? x : y;
@@ -4849,10 +5034,1201 @@ var $elm$core$Result$isOk = function (result) {
 		return false;
 	}
 };
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$downloadJsonFile = _Platform_outgoingPort('downloadJsonFile', $elm$json$Json$Encode$string);
+var $elm$json$Json$Encode$float = _Json_wrap;
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
 var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Automaton$Codec$encode = function (a) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'states',
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, a.states)),
+				_Utils_Tuple2(
+				'alphabet',
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, a.alphabet)),
+				_Utils_Tuple2(
+				'transitions',
+				A2(
+					$elm$json$Json$Encode$list,
+					function (t) {
+						return $elm$json$Json$Encode$object(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									'from',
+									$elm$json$Json$Encode$int(t.from)),
+									_Utils_Tuple2(
+									'symbol',
+									$elm$json$Json$Encode$string(t.symbol)),
+									_Utils_Tuple2(
+									'to',
+									$elm$json$Json$Encode$int(t.to_))
+								]));
+					},
+					a.transitions)),
+				_Utils_Tuple2(
+				'start',
+				function () {
+					var _v0 = a.start;
+					if (_v0.$ === 'Nothing') {
+						return $elm$json$Json$Encode$null;
+					} else {
+						var s = _v0.a;
+						return $elm$json$Json$Encode$int(s);
+					}
+				}()),
+				_Utils_Tuple2(
+				'accepting',
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, a.accepting)),
+				_Utils_Tuple2(
+				'positions',
+				A2(
+					$elm$json$Json$Encode$list,
+					function (_v1) {
+						var stateId = _v1.a;
+						var position = _v1.b;
+						return $elm$json$Json$Encode$object(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									'state',
+									$elm$json$Json$Encode$int(stateId)),
+									_Utils_Tuple2(
+									'x',
+									$elm$json$Json$Encode$float(position.x)),
+									_Utils_Tuple2(
+									'y',
+									$elm$json$Json$Encode$float(position.y))
+								]));
+					},
+					$elm$core$Dict$toList(a.positions)))
+			]));
+};
+var $author$project$Main$exportJsonString = function (automaton) {
+	return A2(
+		$elm$json$Json$Encode$encode,
+		2,
+		$author$project$Automaton$Codec$encode(automaton));
+};
+var $author$project$Main$automatonSignature = function (automaton) {
+	return $author$project$Main$exportJsonString(automaton);
+};
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $author$project$Main$formatAlphabet = function (alphabet) {
+	return $elm$core$List$isEmpty(alphabet) ? '{}' : ('{ ' + (A2($elm$core$String$join, ', ', alphabet) + ' }'));
+};
+var $elm$core$List$foldrHelper = F4(
+	function (fn, acc, ctr, ls) {
+		if (!ls.b) {
+			return acc;
+		} else {
+			var a = ls.a;
+			var r1 = ls.b;
+			if (!r1.b) {
+				return A2(fn, a, acc);
+			} else {
+				var b = r1.a;
+				var r2 = r1.b;
+				if (!r2.b) {
+					return A2(
+						fn,
+						a,
+						A2(fn, b, acc));
+				} else {
+					var c = r2.a;
+					var r3 = r2.b;
+					if (!r3.b) {
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(fn, c, acc)));
+					} else {
+						var d = r3.a;
+						var r4 = r3.b;
+						var res = (ctr > 500) ? A3(
+							$elm$core$List$foldl,
+							fn,
+							acc,
+							$elm$core$List$reverse(r4)) : A4($elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(
+									fn,
+									c,
+									A2(fn, d, res))));
+					}
+				}
+			}
+		}
+	});
+var $elm$core$List$foldr = F3(
+	function (fn, acc, ls) {
+		return A4($elm$core$List$foldrHelper, fn, acc, 0, ls);
+	});
+var $elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						$elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
+var $elm$core$Basics$identity = function (x) {
+	return x;
+};
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm$core$List$sort = function (xs) {
+	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
+};
+var $author$project$Main$formatStateSet = function (states) {
+	var content = A2(
+		$elm$core$String$join,
+		', ',
+		A2(
+			$elm$core$List$map,
+			$author$project$Main$formatState,
+			$elm$core$List$sort(states)));
+	return $elm$core$String$isEmpty(content) ? '{}' : ('{ ' + (content + ' }'));
+};
+var $elm$core$Basics$ge = _Utils_ge;
+var $author$project$Main$slovakCount = F4(
+	function (count, one, few, many) {
+		return $elm$core$String$fromInt(count) + (' ' + ((count === 1) ? one : (((count >= 2) && (count <= 4)) ? few : many)));
+	});
+var $author$project$Main$stateCountText = function (count) {
+	return A4($author$project$Main$slovakCount, count, 'stav', 'stavy', 'stavov');
+};
+var $author$project$Main$transitionCountText = function (count) {
+	return A4($author$project$Main$slovakCount, count, 'prechod', 'prechody', 'prechodov');
+};
+var $author$project$Main$complementConsoleSteps = F2(
+	function (before, after) {
+		return _List_fromArray(
+			[
+				'1. Vstupny DFA mal ' + ($author$project$Main$stateCountText(
+				$elm$core$List$length(before.states)) + (' a accepting stavy ' + ($author$project$Main$formatStateSet(before.accepting) + '.'))),
+				'2. Automat sa najprv totalizoval nad abecedou ' + ($author$project$Main$formatAlphabet(before.alphabet) + ', aby bol komplement korektny.'),
+				'3. Accepting a neaccepting stavy sa prehodili.',
+				'4. Vysledok ma accepting stavy ' + ($author$project$Main$formatStateSet(after.accepting) + (' a ' + ($author$project$Main$transitionCountText(
+				$elm$core$List$length(after.transitions)) + '.')))
+			]);
+	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $elm$core$Basics$not = _Basics_not;
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $author$project$Main$transitionByIndex = F2(
+	function (idx, transitions) {
+		return A2(
+			$elm$core$Maybe$map,
+			$elm$core$Tuple$second,
+			$elm$core$List$head(
+				A2(
+					$elm$core$List$filter,
+					function (_v0) {
+						var currentIndex = _v0.a;
+						return _Utils_eq(currentIndex, idx);
+					},
+					A2($elm$core$List$indexedMap, $elm$core$Tuple$pair, transitions))));
+	});
+var $author$project$Main$editorConsoleSteps = F4(
+	function (editorMsg, before, after, fallbackInfo) {
+		switch (editorMsg.$) {
+			case 'AddState':
+				var addedStates = A2(
+					$elm$core$List$filter,
+					function (stateId) {
+						return !A2($elm$core$List$member, stateId, before.states);
+					},
+					after.states);
+				if (addedStates.b) {
+					var stateId = addedStates.a;
+					return _List_fromArray(
+						[
+							'Pridany stav ' + ($author$project$Main$formatState(stateId) + '.')
+						]);
+				} else {
+					return _List_fromArray(
+						[fallbackInfo]);
+				}
+			case 'RemoveState':
+				var stateId = editorMsg.a;
+				return _List_fromArray(
+					[
+						'Odstraneny stav ' + ($author$project$Main$formatState(stateId) + ' aj jeho suvisiace prechody.')
+					]);
+			case 'ToggleAccepting':
+				var stateId = editorMsg.a;
+				return A2($elm$core$List$member, stateId, after.accepting) ? _List_fromArray(
+					[
+						$author$project$Main$formatState(stateId) + ' je teraz akceptacny stav.'
+					]) : _List_fromArray(
+					[
+						$author$project$Main$formatState(stateId) + ' uz nie je akceptacny stav.'
+					]);
+			case 'SetStart':
+				var maybeState = editorMsg.a;
+				if (maybeState.$ === 'Just') {
+					var stateId = maybeState.a;
+					return _List_fromArray(
+						[
+							'Startovaci stav nastaveny na ' + ($author$project$Main$formatState(stateId) + '.')
+						]);
+				} else {
+					return _List_fromArray(
+						['Startovaci stav bol zruseny.']);
+				}
+			case 'AddTransition':
+				var from = editorMsg.a;
+				var symbol = editorMsg.b;
+				var to_ = editorMsg.c;
+				return A3(
+					$author$project$Main$addedTransitionConsoleSteps,
+					before,
+					after,
+					'Pridany prechod ' + ($author$project$Main$transitionLabel(
+						{from: from, symbol: symbol, to_: to_}) + '.'));
+			case 'RemoveTransition':
+				var idx = editorMsg.a;
+				var _v3 = A2($author$project$Main$transitionByIndex, idx, before.transitions);
+				if (_v3.$ === 'Just') {
+					var transition = _v3.a;
+					return _List_fromArray(
+						[
+							'Odstraneny prechod ' + ($author$project$Main$transitionLabel(transition) + '.')
+						]);
+				} else {
+					return _List_fromArray(
+						[fallbackInfo]);
+				}
+			default:
+				var stateId = editorMsg.a;
+				return _List_fromArray(
+					[
+						'Pozicia stavu ' + ($author$project$Main$formatState(stateId) + ' bola ulozena.')
+					]);
+		}
+	});
+var $author$project$Main$minimizeConsoleSteps = F2(
+	function (before, after) {
+		var beforeCount = $elm$core$List$length(before.states);
+		var afterCount = $elm$core$List$length(after.states);
+		var stateSummary = _Utils_eq(beforeCount, afterCount) ? ('4. Pocet stavov sa nezmenil: automat uz mal ' + ($author$project$Main$stateCountText(afterCount) + '.')) : ((_Utils_cmp(afterCount, beforeCount) < 0) ? ('4. Pocet stavov sa zmensil z ' + ($author$project$Main$stateCountText(beforeCount) + (' na ' + ($author$project$Main$stateCountText(afterCount) + '.')))) : ('4. Vysledok ma ' + ($author$project$Main$stateCountText(afterCount) + ', pretoze pred minimalizaciou bolo potrebne doplnit totalny DFA.')));
+		return _List_fromArray(
+			[
+				'1. Overil sa validny DFA nad abecedou ' + ($author$project$Main$formatAlphabet(before.alphabet) + '.'),
+				'2. Pred minimalizaciou mal automat ' + ($author$project$Main$stateCountText(beforeCount) + (' a ' + ($author$project$Main$transitionCountText(
+				$elm$core$List$length(before.transitions)) + '.'))),
+				'3. Stavy sa rozdelili na triedy accepting / neaccepting a potom sa triedy spresnovali podla prechodov.',
+				stateSummary,
+				'5. Vysledok ma ' + ($author$project$Main$transitionCountText(
+				$elm$core$List$length(after.transitions)) + (' a accepting stavy ' + ($author$project$Main$formatStateSet(after.accepting) + '.')))
+			]);
+	});
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$Set$Set_elm_builtin = function (a) {
+	return {$: 'Set_elm_builtin', a: a};
+};
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
+var $elm$core$Dict$Black = {$: 'Black'};
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = {$: 'Red'};
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1.$) {
+				case 'LT':
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$core$Set$insert = F2(
+	function (key, _v0) {
+		var dict = _v0.a;
+		return $elm$core$Set$Set_elm_builtin(
+			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
+	});
+var $elm$core$Set$fromList = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
+};
+var $author$project$Main$usedAlphabet = function (automaton) {
+	return $elm$core$Set$toList(
+		$elm$core$Set$fromList(
+			A2(
+				$elm$core$List$filter,
+				A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+				A2(
+					$elm$core$List$map,
+					function ($) {
+						return $.symbol;
+					},
+					automaton.transitions))));
+};
+var $author$project$Main$nfaToDfaConsoleSteps = F2(
+	function (before, after) {
+		var epsilonCount = $elm$core$List$length(
+			A2(
+				$elm$core$List$filter,
+				A2(
+					$elm$core$Basics$composeR,
+					function ($) {
+						return $.symbol;
+					},
+					$elm$core$String$isEmpty),
+				before.transitions));
+		var epsilonLine = (!epsilonCount) ? '3. Vstup neobsahoval epsilon prechody, takze epsilon-closure nemenila mnoziny stavov.' : ('3. Vstup obsahoval ' + ($author$project$Main$transitionCountText(epsilonCount) + ' typu epsilon, preto sa pri kazdej mnozine dopocitala epsilon-closure.'));
+		var beforeTransitions = $elm$core$List$length(before.transitions);
+		var beforeStates = $elm$core$List$length(before.states);
+		var afterTransitions = $elm$core$List$length(after.transitions);
+		var afterStates = $elm$core$List$length(after.states);
+		return _List_fromArray(
+			[
+				'1. Vstupny automat mal ' + ($author$project$Main$stateCountText(beforeStates) + (', ' + ($author$project$Main$transitionCountText(beforeTransitions) + (' a abecedu ' + ($author$project$Main$formatAlphabet(
+				$author$project$Main$usedAlphabet(before)) + '.'))))),
+				'2. Startovacia mnozina DFA vznikla ako epsilon-closure startovacieho stavu.',
+				epsilonLine,
+				'4. Vysledny DFA ma ' + ($author$project$Main$stateCountText(afterStates) + (', ' + ($author$project$Main$transitionCountText(afterTransitions) + (' a accepting stavy ' + ($author$project$Main$formatStateSet(after.accepting) + '.')))))
+			]);
+	});
+var $author$project$Main$operationConsoleSteps = F3(
+	function (label, before, after) {
+		return _List_fromArray(
+			[
+				'1. Spustena operacia: ' + (label + '.'),
+				'2. Vstupny automat A mal ' + ($author$project$Main$stateCountText(
+				$elm$core$List$length(before.states)) + (', ' + ($author$project$Main$transitionCountText(
+				$elm$core$List$length(before.transitions)) + (' a abecedu ' + ($author$project$Main$formatAlphabet(before.alphabet) + '.'))))),
+				'3. Vysledny automat ma ' + ($author$project$Main$stateCountText(
+				$elm$core$List$length(after.states)) + (', ' + ($author$project$Main$transitionCountText(
+				$elm$core$List$length(after.transitions)) + (' a abecedu ' + ($author$project$Main$formatAlphabet(after.alphabet) + '.'))))),
+				'4. Accepting stavy vysledku: ' + ($author$project$Main$formatStateSet(after.accepting) + '.')
+			]);
+	});
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $author$project$Main$currentTapeSymbol = function (simulation) {
+	return $elm$core$List$head(
+		A2($elm$core$List$drop, simulation.currentIndex, simulation.symbols));
+};
+var $author$project$Main$simulationStatusText = function (simulation) {
+	var _v0 = simulation.status;
+	switch (_v0.$) {
+		case 'SimReady':
+			var _v1 = simulation.currentState;
+			if (_v1.$ === 'Just') {
+				var stateId = _v1.a;
+				return 'Simulacia je pripravena v stave q' + ($elm$core$String$fromInt(stateId) + '.');
+			} else {
+				return 'Automat nema startovaci stav.';
+			}
+		case 'SimRunning':
+			var _v2 = simulation.currentState;
+			if (_v2.$ === 'Just') {
+				var stateId = _v2.a;
+				return 'Aktualne si v stave q' + ($elm$core$String$fromInt(stateId) + '.');
+			} else {
+				return 'Automat sa nevie pohnut dalej.';
+			}
+		case 'SimAccepted':
+			var _v3 = simulation.currentState;
+			if (_v3.$ === 'Just') {
+				var stateId = _v3.a;
+				return 'Slovo bolo prijate. Automat skoncil v stave q' + ($elm$core$String$fromInt(stateId) + '.');
+			} else {
+				return 'Slovo bolo prijate.';
+			}
+		case 'SimRejected':
+			var _v4 = simulation.currentState;
+			if (_v4.$ === 'Just') {
+				var stateId = _v4.a;
+				return 'Slovo bolo zamietnute. Automat skoncil v stave q' + ($elm$core$String$fromInt(stateId) + '.');
+			} else {
+				return 'Slovo bolo zamietnute.';
+			}
+		default:
+			var _v5 = _Utils_Tuple2(
+				simulation.currentState,
+				$author$project$Main$currentTapeSymbol(simulation));
+			if (_v5.a.$ === 'Just') {
+				if (_v5.b.$ === 'Just') {
+					var stateId = _v5.a.a;
+					var symbol = _v5.b.a;
+					return 'Automat sa zasekol v stave q' + ($elm$core$String$fromInt(stateId) + (' na symbole \'' + (symbol + '\'.')));
+				} else {
+					return 'Automat sa zasekol.';
+				}
+			} else {
+				var _v6 = _v5.a;
+				return 'Automat nema definovany startovaci stav.';
+			}
+	}
+};
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$simulationConsoleSteps = function (simulation) {
+	var wordText = $elm$core$List$isEmpty(simulation.symbols) ? 'ε' : A2($elm$core$String$join, '', simulation.symbols);
+	var stateText = A2(
+		$elm$core$Maybe$withDefault,
+		'-',
+		A2($elm$core$Maybe$map, $author$project$Main$formatState, simulation.currentState));
+	return _List_fromArray(
+		[
+			$author$project$Main$simulationStatusText(simulation),
+			'Vstup: ' + wordText,
+			'Koncovy stav: ' + stateText,
+			'Precitané symboly: ' + ($elm$core$String$fromInt(simulation.currentIndex) + (' / ' + $elm$core$String$fromInt(
+			$elm$core$List$length(simulation.symbols))))
+		]);
+};
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$concatMap = F2(
+	function (f, list) {
+		return $elm$core$List$concat(
+			A2($elm$core$List$map, f, list));
+	});
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $author$project$Main$transitionKey = function (transition) {
+	return $elm$core$String$fromInt(transition.from) + ('|' + (transition.symbol + ('|' + $elm$core$String$fromInt(transition.to_))));
+};
+var $author$project$Main$transitionMultiset = function (transitions) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (transition, acc) {
+				var key = $author$project$Main$transitionKey(transition);
+				var nextCount = function () {
+					var _v0 = A2($elm$core$Dict$get, key, acc);
+					if (_v0.$ === 'Just') {
+						var _v1 = _v0.a;
+						var count = _v1.a;
+						return count + 1;
+					} else {
+						return 1;
+					}
+				}();
+				return A3(
+					$elm$core$Dict$insert,
+					key,
+					_Utils_Tuple2(nextCount, transition),
+					acc);
+			}),
+		$elm$core$Dict$empty,
+		transitions);
+};
+var $author$project$Main$transitionDiff = F2(
+	function (beforeTransitions, afterTransitions) {
+		var expandedPositiveDiff = F2(
+			function (source, other) {
+				return A2(
+					$elm$core$List$concatMap,
+					function (_v0) {
+						var key = _v0.a;
+						var _v1 = _v0.b;
+						var count = _v1.a;
+						var transition = _v1.b;
+						var otherCount = A2(
+							$elm$core$Maybe$withDefault,
+							0,
+							A2(
+								$elm$core$Maybe$map,
+								$elm$core$Tuple$first,
+								A2($elm$core$Dict$get, key, other)));
+						var diffCount = count - otherCount;
+						return (diffCount > 0) ? A2($elm$core$List$repeat, diffCount, transition) : _List_Nil;
+					},
+					$elm$core$Dict$toList(source));
+			});
+		var beforeMap = $author$project$Main$transitionMultiset(beforeTransitions);
+		var afterMap = $author$project$Main$transitionMultiset(afterTransitions);
+		return _Utils_Tuple2(
+			A2(expandedPositiveDiff, afterMap, beforeMap),
+			A2(expandedPositiveDiff, beforeMap, afterMap));
+	});
+var $author$project$Main$automatonChangeSummary = F2(
+	function (before, after) {
+		var startLine = _Utils_eq(before.start, after.start) ? _List_Nil : _List_fromArray(
+			[
+				'Zmeneny start: ' + (A2(
+				$elm$core$Maybe$withDefault,
+				'-',
+				A2($elm$core$Maybe$map, $author$project$Main$formatState, before.start)) + (' -> ' + (A2(
+				$elm$core$Maybe$withDefault,
+				'-',
+				A2($elm$core$Maybe$map, $author$project$Main$formatState, after.start)) + '.')))
+			]);
+		var removedStates = $elm$core$List$sort(
+			A2(
+				$elm$core$List$filter,
+				function (stateId) {
+					return !A2($elm$core$List$member, stateId, after.states);
+				},
+				before.states));
+		var removedAccepting = $elm$core$List$sort(
+			A2(
+				$elm$core$List$filter,
+				function (stateId) {
+					return !A2($elm$core$List$member, stateId, after.accepting);
+				},
+				before.accepting));
+		var addedStates = $elm$core$List$sort(
+			A2(
+				$elm$core$List$filter,
+				function (stateId) {
+					return !A2($elm$core$List$member, stateId, before.states);
+				},
+				after.states));
+		var stateLines = _Utils_ap(
+			$elm$core$List$isEmpty(addedStates) ? _List_Nil : _List_fromArray(
+				[
+					'Pridane stavy: ' + ($author$project$Main$formatStateSet(addedStates) + '.')
+				]),
+			$elm$core$List$isEmpty(removedStates) ? _List_Nil : _List_fromArray(
+				[
+					'Odstranene stavy: ' + ($author$project$Main$formatStateSet(removedStates) + '.')
+				]));
+		var addedAccepting = $elm$core$List$sort(
+			A2(
+				$elm$core$List$filter,
+				function (stateId) {
+					return !A2($elm$core$List$member, stateId, before.accepting);
+				},
+				after.accepting));
+		var acceptingLines = _Utils_ap(
+			$elm$core$List$isEmpty(addedAccepting) ? _List_Nil : _List_fromArray(
+				[
+					'Pridane akceptacne stavy: ' + ($author$project$Main$formatStateSet(addedAccepting) + '.')
+				]),
+			$elm$core$List$isEmpty(removedAccepting) ? _List_Nil : _List_fromArray(
+				[
+					'Odstranene akceptacne stavy: ' + ($author$project$Main$formatStateSet(removedAccepting) + '.')
+				]));
+		var _v0 = A2($author$project$Main$transitionDiff, before.transitions, after.transitions);
+		var addedTransitions = _v0.a;
+		var removedTransitions = _v0.b;
+		var transitionLines = _Utils_ap(
+			$elm$core$List$isEmpty(addedTransitions) ? _List_Nil : _List_fromArray(
+				[
+					'Pridane prechody: ' + (A2(
+					$elm$core$String$join,
+					', ',
+					A2($elm$core$List$map, $author$project$Main$transitionLabel, addedTransitions)) + '.')
+				]),
+			$elm$core$List$isEmpty(removedTransitions) ? _List_Nil : _List_fromArray(
+				[
+					'Odstranene prechody: ' + (A2(
+					$elm$core$String$join,
+					', ',
+					A2($elm$core$List$map, $author$project$Main$transitionLabel, removedTransitions)) + '.')
+				]));
+		return _Utils_ap(
+			stateLines,
+			_Utils_ap(
+				transitionLines,
+				_Utils_ap(startLine, acceptingLines)));
+	});
+var $author$project$Main$withChangeSummary = F3(
+	function (before, after, lines) {
+		var summary = A2($author$project$Main$automatonChangeSummary, before, after);
+		return $elm$core$List$isEmpty(summary) ? lines : _Utils_ap(
+			lines,
+			A2($elm$core$List$cons, 'Zmeny automatu:', summary));
+	});
+var $author$project$Main$consoleBodyForMsg = F3(
+	function (msg, previousModel, updatedModel) {
+		var before = previousModel.history.present;
+		var after = updatedModel.history.present;
+		switch (msg.$) {
+			case 'Editor':
+				var editorMsg = msg.a;
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A4($author$project$Main$editorConsoleSteps, editorMsg, before, after, updatedModel.msgInfo)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'AddTransitionClicked':
+				return A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$addedTransitionConsoleSteps, before, after, updatedModel.msgInfo));
+			case 'AddEpsilonTransitionClicked':
+				return A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$addedTransitionConsoleSteps, before, after, updatedModel.msgInfo));
+			case 'ConfirmGraphTransition':
+				return A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$addedTransitionConsoleSteps, before, after, updatedModel.msgInfo));
+			case 'ConfirmGraphEpsilonTransition':
+				return A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$addedTransitionConsoleSteps, before, after, updatedModel.msgInfo));
+			case 'CheckWord':
+				return (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimAccepted) || (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimRejected) || _Utils_eq(updatedModel.simulation.status, $author$project$Main$SimStuck))) ? $author$project$Main$simulationConsoleSteps(updatedModel.simulation) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'StepSimulation':
+				return (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimAccepted) || (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimRejected) || _Utils_eq(updatedModel.simulation.status, $author$project$Main$SimStuck))) ? $author$project$Main$simulationConsoleSteps(updatedModel.simulation) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'SimulationTick':
+				return (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimAccepted) || (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimRejected) || _Utils_eq(updatedModel.simulation.status, $author$project$Main$SimStuck))) ? $author$project$Main$simulationConsoleSteps(updatedModel.simulation) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'ToggleSimulationPlayback':
+				return (previousModel.simulation.autoplay && (!updatedModel.simulation.autoplay)) ? $author$project$Main$simulationConsoleSteps(updatedModel.simulation) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'NfaToDfa':
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A2($author$project$Main$nfaToDfaConsoleSteps, before, after)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'MinimizeDfa':
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A2($author$project$Main$minimizeConsoleSteps, before, after)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'ComplementDfa':
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A2($author$project$Main$complementConsoleSteps, before, after)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'UnionWithOther':
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$operationConsoleSteps, 'zjednotenie A U B', before, after)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			case 'IntersectWithOther':
+				return (!_Utils_eq(
+					$author$project$Main$automatonSignature(before),
+					$author$project$Main$automatonSignature(after))) ? A3(
+					$author$project$Main$withChangeSummary,
+					before,
+					after,
+					A3($author$project$Main$operationConsoleSteps, 'prienik A n B', before, after)) : _List_fromArray(
+					[updatedModel.msgInfo]);
+			default:
+				return _List_fromArray(
+					[updatedModel.msgInfo]);
+		}
+	});
+var $author$project$Main$ConsoleAlgorithm = {$: 'ConsoleAlgorithm'};
+var $author$project$Main$ConsoleError = {$: 'ConsoleError'};
+var $author$project$Main$ConsoleInfo = {$: 'ConsoleInfo'};
+var $author$project$Main$ConsoleSuccess = {$: 'ConsoleSuccess'};
+var $elm$core$String$contains = _String_contains;
+var $elm$core$String$toLower = _String_toLower;
+var $author$project$Main$consoleKindForMsg = F2(
+	function (msg, infoText) {
+		var lowered = $elm$core$String$toLower(infoText);
+		if (A2($elm$core$String$contains, 'chyba', lowered) || (A2($elm$core$String$contains, 'error', lowered) || (A2($elm$core$String$contains, 'neplatny', lowered) || (A2($elm$core$String$contains, 'nie je mozne', lowered) || A2($elm$core$String$contains, 'iba pre dfa', lowered))))) {
+			return $author$project$Main$ConsoleError;
+		} else {
+			switch (msg.$) {
+				case 'NfaToDfa':
+					return $author$project$Main$ConsoleAlgorithm;
+				case 'MinimizeDfa':
+					return $author$project$Main$ConsoleAlgorithm;
+				case 'ComplementDfa':
+					return $author$project$Main$ConsoleAlgorithm;
+				case 'UnionWithOther':
+					return $author$project$Main$ConsoleAlgorithm;
+				case 'IntersectWithOther':
+					return $author$project$Main$ConsoleAlgorithm;
+				case 'ImportJson':
+					return $author$project$Main$ConsoleSuccess;
+				case 'DownloadJsonFile':
+					return $author$project$Main$ConsoleSuccess;
+				case 'ExportJson':
+					return $author$project$Main$ConsoleSuccess;
+				case 'ExportGraphSvg':
+					return $author$project$Main$ConsoleSuccess;
+				case 'ExportGraphPng':
+					return $author$project$Main$ConsoleSuccess;
+				default:
+					return $author$project$Main$ConsoleInfo;
+			}
+		}
+	});
+var $author$project$Main$consoleTitleForMsg = function (msg) {
+	switch (msg.$) {
+		case 'Editor':
+			return 'Editor';
+		case 'SavedAutomatonLoaded':
+			return 'localStorage';
+		case 'Undo':
+			return 'Undo';
+		case 'Redo':
+			return 'Redo';
+		case 'CheckWord':
+			return 'Simulacia';
+		case 'ResetSimulation':
+			return 'Simulacia';
+		case 'StepSimulation':
+			return 'Simulacia';
+		case 'ToggleSimulationPlayback':
+			return 'Simulacia';
+		case 'AddTransitionClicked':
+			return 'Prechod';
+		case 'AddEpsilonTransitionClicked':
+			return 'Epsilon prechod';
+		case 'ConfirmGraphTransition':
+			return 'Prechod z grafu';
+		case 'ConfirmGraphEpsilonTransition':
+			return 'Epsilon z grafu';
+		case 'CancelGraphTransition':
+			return 'Graf';
+		case 'GlobalKeyPressed':
+			return 'Klavesnica';
+		case 'ExportJson':
+			return 'JSON export';
+		case 'DownloadJsonFile':
+			return 'JSON subor';
+		case 'ExportGraphSvg':
+			return 'SVG export';
+		case 'ExportGraphPng':
+			return 'PNG export';
+		case 'PickJsonFile':
+			return 'JSON import';
+		case 'PickOtherJsonFile':
+			return 'Druhy automat';
+		case 'JsonFileLoaded':
+			return 'JSON subor';
+		case 'ImportJson':
+			return 'JSON import';
+		case 'NfaToDfa':
+			return 'NFA -> DFA';
+		case 'MinimizeDfa':
+			return 'Minimalizacia';
+		case 'ComplementDfa':
+			return 'Komplement';
+		case 'UnionWithOther':
+			return 'Zjednotenie';
+		case 'IntersectWithOther':
+			return 'Prienik';
+		case 'GraphMsg':
+			if (msg.a.$ === 'EndDrag') {
+				var _v1 = msg.a;
+				return 'Platno';
+			} else {
+				return 'Graf';
+			}
+		default:
+			return 'Info';
+	}
+};
+var $elm$core$String$trim = _String_trim;
+var $author$project$Main$shouldAppendConsole = F3(
+	function (msg, previousModel, updatedModel) {
+		var automatonChanged = !_Utils_eq(
+			$author$project$Main$automatonSignature(previousModel.history.present),
+			$author$project$Main$automatonSignature(updatedModel.history.present));
+		_v0$29:
+		while (true) {
+			switch (msg.$) {
+				case 'FromChanged':
+					return false;
+				case 'SymChanged':
+					return false;
+				case 'ToChanged':
+					return false;
+				case 'ImportTextChanged':
+					return false;
+				case 'OtherJsonChanged':
+					return false;
+				case 'WordChanged':
+					return false;
+				case 'SetPlaybackSpeed':
+					return false;
+				case 'SimulationTick':
+					return _Utils_eq(updatedModel.simulation.status, $author$project$Main$SimAccepted) || (_Utils_eq(updatedModel.simulation.status, $author$project$Main$SimRejected) || _Utils_eq(updatedModel.simulation.status, $author$project$Main$SimStuck));
+				case 'GraphTransitionSymbolChanged':
+					return false;
+				case 'StartConsoleResize':
+					return false;
+				case 'ConsoleResize':
+					return false;
+				case 'EndConsoleResize':
+					return false;
+				case 'ClearConsole':
+					return false;
+				case 'CanvasZoomIn':
+					return false;
+				case 'CanvasZoomOut':
+					return false;
+				case 'ResetCanvasView':
+					return false;
+				case 'SelectTab':
+					return false;
+				case 'SelectEditorSubTab':
+					return false;
+				case 'SelectAlgorithmsSubTab':
+					return false;
+				case 'SelectGuideTab':
+					return false;
+				case 'ToggleGuide':
+					return false;
+				case 'CloseGuide':
+					return false;
+				case 'CloseGuideAndSelectTab':
+					return false;
+				case 'GraphMsg':
+					switch (msg.a.$) {
+						case 'Drag':
+							var _v1 = msg.a;
+							return false;
+						case 'Pan':
+							var _v2 = msg.a;
+							return false;
+						case 'StartPan':
+							var _v3 = msg.a;
+							return false;
+						case 'EndPan':
+							var _v4 = msg.a;
+							return false;
+						case 'Wheel':
+							return false;
+						case 'NoOp':
+							var _v5 = msg.a;
+							return false;
+						default:
+							break _v0$29;
+					}
+				default:
+					break _v0$29;
+			}
+		}
+		return automatonChanged || ((!_Utils_eq(previousModel.msgInfo, updatedModel.msgInfo)) && (!$elm$core$String$isEmpty(
+			$elm$core$String$trim(updatedModel.msgInfo))));
+	});
+var $author$project$Main$appendConsoleForMessage = F3(
+	function (msg, previousModel, updatedModel) {
+		return A3($author$project$Main$shouldAppendConsole, msg, previousModel, updatedModel) ? A4(
+			$author$project$Main$appendConsoleEntry,
+			A2($author$project$Main$consoleKindForMsg, msg, updatedModel.msgInfo),
+			$author$project$Main$consoleTitleForMsg(msg),
+			A3($author$project$Main$consoleBodyForMsg, msg, previousModel, updatedModel),
+			updatedModel) : updatedModel;
+	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $author$project$Main$downloadJsonFile = _Platform_outgoingPort('downloadJsonFile', $elm$json$Json$Encode$string);
 var $author$project$Main$exportGraphPngFile = _Platform_outgoingPort(
 	'exportGraphPngFile',
 	function ($) {
@@ -4907,9 +6283,6 @@ var $elm$browser$Browser$External = function (a) {
 var $elm$browser$Browser$Internal = function (a) {
 	return {$: 'Internal', a: a};
 };
-var $elm$core$Basics$identity = function (x) {
-	return x;
-};
 var $elm$browser$Browser$Dom$NotFound = function (a) {
 	return {$: 'NotFound', a: a};
 };
@@ -4919,7 +6292,6 @@ var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
 		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
 	});
-var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
 var $elm$core$String$slice = _String_slice;
 var $elm$core$String$dropLeft = F2(
@@ -4931,9 +6303,6 @@ var $elm$core$String$dropLeft = F2(
 			string);
 	});
 var $elm$core$String$indexes = _String_indexes;
-var $elm$core$String$isEmpty = function (string) {
-	return string === '';
-};
 var $elm$core$String$left = F2(
 	function (n, string) {
 		return (n < 1) ? '' : A3($elm$core$String$slice, 0, n, string);
@@ -5056,75 +6425,6 @@ var $elm$core$Task$Perform = function (a) {
 };
 var $elm$core$Task$succeed = _Scheduler_succeed;
 var $elm$core$Task$init = $elm$core$Task$succeed(_Utils_Tuple0);
-var $elm$core$List$foldrHelper = F4(
-	function (fn, acc, ctr, ls) {
-		if (!ls.b) {
-			return acc;
-		} else {
-			var a = ls.a;
-			var r1 = ls.b;
-			if (!r1.b) {
-				return A2(fn, a, acc);
-			} else {
-				var b = r1.a;
-				var r2 = r1.b;
-				if (!r2.b) {
-					return A2(
-						fn,
-						a,
-						A2(fn, b, acc));
-				} else {
-					var c = r2.a;
-					var r3 = r2.b;
-					if (!r3.b) {
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(fn, c, acc)));
-					} else {
-						var d = r3.a;
-						var r4 = r3.b;
-						var res = (ctr > 500) ? A3(
-							$elm$core$List$foldl,
-							fn,
-							acc,
-							$elm$core$List$reverse(r4)) : A4($elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(
-									fn,
-									c,
-									A2(fn, d, res))));
-					}
-				}
-			}
-		}
-	});
-var $elm$core$List$foldr = F3(
-	function (fn, acc, ls) {
-		return A4($elm$core$List$foldrHelper, fn, acc, 0, ls);
-	});
-var $elm$core$List$map = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, acc) {
-					return A2(
-						$elm$core$List$cons,
-						f(x),
-						acc);
-				}),
-			_List_Nil,
-			xs);
-	});
 var $elm$core$Task$andThen = _Scheduler_andThen;
 var $elm$core$Task$map = F2(
 	function (func, taskA) {
@@ -5207,117 +6507,6 @@ var $author$project$Main$MainImportFile = {$: 'MainImportFile'};
 var $author$project$Main$Normal = {$: 'Normal'};
 var $author$project$Main$StatesSub = {$: 'StatesSub'};
 var $elm$core$Basics$cos = _Basics_cos;
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$core$Dict$Black = {$: 'Black'};
-var $elm$core$Dict$RBNode_elm_builtin = F5(
-	function (a, b, c, d, e) {
-		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
-	});
-var $elm$core$Dict$Red = {$: 'Red'};
-var $elm$core$Dict$balance = F5(
-	function (color, key, value, left, right) {
-		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
-			var _v1 = right.a;
-			var rK = right.b;
-			var rV = right.c;
-			var rLeft = right.d;
-			var rRight = right.e;
-			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
-				var _v3 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var lLeft = left.d;
-				var lRight = left.e;
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					$elm$core$Dict$Red,
-					key,
-					value,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
-			} else {
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					color,
-					rK,
-					rV,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
-					rRight);
-			}
-		} else {
-			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
-				var _v5 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var _v6 = left.d;
-				var _v7 = _v6.a;
-				var llK = _v6.b;
-				var llV = _v6.c;
-				var llLeft = _v6.d;
-				var llRight = _v6.e;
-				var lRight = left.e;
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					$elm$core$Dict$Red,
-					lK,
-					lV,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
-			} else {
-				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
-			}
-		}
-	});
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$Dict$insertHelp = F3(
-	function (key, value, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
-		} else {
-			var nColor = dict.a;
-			var nKey = dict.b;
-			var nValue = dict.c;
-			var nLeft = dict.d;
-			var nRight = dict.e;
-			var _v1 = A2($elm$core$Basics$compare, key, nKey);
-			switch (_v1.$) {
-				case 'LT':
-					return A5(
-						$elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						A3($elm$core$Dict$insertHelp, key, value, nLeft),
-						nRight);
-				case 'EQ':
-					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
-				default:
-					return A5(
-						$elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						nLeft,
-						A3($elm$core$Dict$insertHelp, key, value, nRight));
-			}
-		}
-	});
-var $elm$core$Dict$insert = F3(
-	function (key, value, dict) {
-		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
-		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
-			var _v1 = _v0.a;
-			var k = _v0.b;
-			var v = _v0.c;
-			var l = _v0.d;
-			var r = _v0.e;
-			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
-		} else {
-			var x = _v0;
-			return x;
-		}
-	});
 var $elm$core$Dict$fromList = function (assocs) {
 	return A3(
 		$elm$core$List$foldl,
@@ -5369,49 +6558,6 @@ var $author$project$Automaton$Core$dfaExample = function () {
 			])
 	};
 }();
-var $elm$core$Set$Set_elm_builtin = function (a) {
-	return {$: 'Set_elm_builtin', a: a};
-};
-var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
-var $elm$core$Set$insert = F2(
-	function (key, _v0) {
-		var dict = _v0.a;
-		return $elm$core$Set$Set_elm_builtin(
-			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
-	});
-var $elm$core$Set$fromList = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
-};
-var $elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
-	});
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $elm$core$Basics$not = _Basics_not;
-var $author$project$Main$usedAlphabet = function (automaton) {
-	return $elm$core$Set$toList(
-		$elm$core$Set$fromList(
-			A2(
-				$elm$core$List$filter,
-				A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
-				A2(
-					$elm$core$List$map,
-					function ($) {
-						return $.symbol;
-					},
-					automaton.transitions))));
-};
 var $author$project$Main$ensureAlphabetCoverage = function (automaton) {
 	return _Utils_update(
 		automaton,
@@ -5427,7 +6573,6 @@ var $author$project$Editor$Update$initHistory = function (a) {
 	return {future: _List_Nil, past: _List_Nil, present: a};
 };
 var $author$project$Main$SimReady = {$: 'SimReady'};
-var $author$project$Main$SimStuck = {$: 'SimStuck'};
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
 	return A2($elm$core$String$cons, _char, '');
@@ -5462,9 +6607,24 @@ var $author$project$Main$resetSimulation = F2(
 		};
 	});
 var $author$project$Main$init = function () {
+	var welcomeText = 'Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova.';
 	var initialAutomaton = $author$project$Main$ensureAlphabetCoverage($author$project$Automaton$Core$dfaExample);
 	return {
 		algorithmsSubTab: $author$project$Main$AlgoBasicSub,
+		canvasPan: $elm$core$Maybe$Nothing,
+		canvasView: {panX: 0, panY: 0, zoom: 1},
+		consoleEntries: _List_fromArray(
+			[
+				{
+				body: _List_fromArray(
+					[welcomeText, 'Hlasenia, chyby a kroky algoritmov sa budu vypisovat sem.']),
+				id: 0,
+				kind: $author$project$Main$ConsoleInfo,
+				title: 'Konzola pripravena'
+			}
+			]),
+		consoleHeight: 220,
+		consoleResize: $elm$core$Maybe$Nothing,
 		dragState: {dragging: $elm$core$Maybe$Nothing, moved: false, offsetX: 0, offsetY: 0, original: $elm$core$Maybe$Nothing},
 		editorSubTab: $author$project$Main$StatesSub,
 		exportText: '',
@@ -5476,7 +6636,8 @@ var $author$project$Main$init = function () {
 		importText: '',
 		inputWord: '',
 		jsonFileTarget: $author$project$Main$MainImportFile,
-		msgInfo: 'Vitaj v editore. Mozes pridavat stavy, prechody a okamzite testovat slova.',
+		msgInfo: welcomeText,
+		nextConsoleId: 1,
 		otherText: '',
 		playbackSpeed: $author$project$Main$Normal,
 		selectedTab: $author$project$Main$EditorTab,
@@ -5485,109 +6646,7 @@ var $author$project$Main$init = function () {
 		toSel: '0'
 	};
 }();
-var $elm$json$Json$Encode$float = _Json_wrap;
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
-	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $author$project$Automaton$Codec$encode = function (a) {
-	return $elm$json$Json$Encode$object(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(
-				'states',
-				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, a.states)),
-				_Utils_Tuple2(
-				'alphabet',
-				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, a.alphabet)),
-				_Utils_Tuple2(
-				'transitions',
-				A2(
-					$elm$json$Json$Encode$list,
-					function (t) {
-						return $elm$json$Json$Encode$object(
-							_List_fromArray(
-								[
-									_Utils_Tuple2(
-									'from',
-									$elm$json$Json$Encode$int(t.from)),
-									_Utils_Tuple2(
-									'symbol',
-									$elm$json$Json$Encode$string(t.symbol)),
-									_Utils_Tuple2(
-									'to',
-									$elm$json$Json$Encode$int(t.to_))
-								]));
-					},
-					a.transitions)),
-				_Utils_Tuple2(
-				'start',
-				function () {
-					var _v0 = a.start;
-					if (_v0.$ === 'Nothing') {
-						return $elm$json$Json$Encode$null;
-					} else {
-						var s = _v0.a;
-						return $elm$json$Json$Encode$int(s);
-					}
-				}()),
-				_Utils_Tuple2(
-				'accepting',
-				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$int, a.accepting)),
-				_Utils_Tuple2(
-				'positions',
-				A2(
-					$elm$json$Json$Encode$list,
-					function (_v1) {
-						var stateId = _v1.a;
-						var position = _v1.b;
-						return $elm$json$Json$Encode$object(
-							_List_fromArray(
-								[
-									_Utils_Tuple2(
-									'state',
-									$elm$json$Json$Encode$int(stateId)),
-									_Utils_Tuple2(
-									'x',
-									$elm$json$Json$Encode$float(position.x)),
-									_Utils_Tuple2(
-									'y',
-									$elm$json$Json$Encode$float(position.y))
-								]));
-					},
-					$elm$core$Dict$toList(a.positions)))
-			]));
-};
-var $author$project$Main$exportJsonString = function (automaton) {
-	return A2(
-		$elm$json$Json$Encode$encode,
-		2,
-		$author$project$Automaton$Codec$encode(automaton));
-};
 var $author$project$Main$saveAutomatonToLocalStorage = _Platform_outgoingPort('saveAutomatonToLocalStorage', $elm$json$Json$Encode$string);
-var $author$project$Main$automatonSignature = function (automaton) {
-	return $author$project$Main$exportJsonString(automaton);
-};
-var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Main$shouldPersistAutomaton = F3(
 	function (msg, previousModel, updatedModel) {
 		_v0$3:
@@ -5619,7 +6678,12 @@ var $author$project$Main$persistAutomatonCmd = F3(
 		return A3($author$project$Main$shouldPersistAutomaton, msg, previousModel, updatedModel) ? $author$project$Main$saveAutomatonToLocalStorage(
 			$author$project$Main$exportJsonString(updatedModel.history.present)) : $elm$core$Platform$Cmd$none;
 	});
+var $author$project$Main$ConsoleResize = function (a) {
+	return {$: 'ConsoleResize', a: a};
+};
+var $author$project$Main$EndConsoleResize = {$: 'EndConsoleResize'};
 var $author$project$View$Graph$EndDrag = {$: 'EndDrag'};
+var $author$project$View$Graph$EndPan = {$: 'EndPan'};
 var $author$project$Main$GlobalKeyPressed = function (a) {
 	return {$: 'GlobalKeyPressed', a: a};
 };
@@ -5637,13 +6701,13 @@ var $author$project$Main$SimulationTick = function (a) {
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$jsonFileSelected = _Platform_incomingPort('jsonFileSelected', $elm$json$Json$Decode$string);
 var $author$project$View$Graph$Drag = F2(
 	function (a, b) {
 		return {$: 'Drag', a: a, b: b};
 	});
-var $elm$json$Json$Decode$float = _Json_decodeFloat;
 var $author$project$Main$mouseMoveDecoder = A3(
 	$elm$json$Json$Decode$map2,
 	$author$project$View$Graph$Drag,
@@ -6057,17 +7121,42 @@ var $elm$browser$Browser$Events$on = F3(
 var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
 var $elm$browser$Browser$Events$onMouseMove = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'mousemove');
 var $elm$browser$Browser$Events$onMouseUp = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'mouseup');
+var $author$project$View$Graph$Pan = F2(
+	function (a, b) {
+		return {$: 'Pan', a: a, b: b};
+	});
+var $author$project$Main$panMoveDecoder = A3(
+	$elm$json$Json$Decode$map2,
+	$author$project$View$Graph$Pan,
+	A2($elm$json$Json$Decode$field, 'clientX', $elm$json$Json$Decode$float),
+	A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float));
 var $author$project$Main$savedAutomatonLoaded = _Platform_incomingPort('savedAutomatonLoaded', $elm$json$Json$Decode$string);
 var $author$project$Main$subscriptions = function (model) {
 	var playbackSubscription = model.simulation.autoplay ? $elm$browser$Browser$Events$onAnimationFrameDelta($author$project$Main$SimulationTick) : $elm$core$Platform$Sub$none;
+	var panSubscription = function () {
+		var _v2 = model.canvasPan;
+		if (_v2.$ === 'Just') {
+			return $elm$core$Platform$Sub$batch(
+				_List_fromArray(
+					[
+						$elm$browser$Browser$Events$onMouseMove(
+						A2($elm$json$Json$Decode$map, $author$project$Main$GraphMsg, $author$project$Main$panMoveDecoder)),
+						$elm$browser$Browser$Events$onMouseUp(
+						$elm$json$Json$Decode$succeed(
+							$author$project$Main$GraphMsg($author$project$View$Graph$EndPan)))
+					]));
+		} else {
+			return $elm$core$Platform$Sub$none;
+		}
+	}();
 	var keySubscription = (!_Utils_eq(model.graphTransitionDraft, $elm$core$Maybe$Nothing)) ? $elm$browser$Browser$Events$onKeyDown(
 		A2(
 			$elm$json$Json$Decode$map,
 			$author$project$Main$GlobalKeyPressed,
 			A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string))) : $elm$core$Platform$Sub$none;
 	var dragSubscription = function () {
-		var _v0 = model.dragState.dragging;
-		if (_v0.$ === 'Just') {
+		var _v1 = model.dragState.dragging;
+		if (_v1.$ === 'Just') {
 			return $elm$core$Platform$Sub$batch(
 				_List_fromArray(
 					[
@@ -6081,10 +7170,30 @@ var $author$project$Main$subscriptions = function (model) {
 			return $elm$core$Platform$Sub$none;
 		}
 	}();
+	var consoleResizeSubscription = function () {
+		var _v0 = model.consoleResize;
+		if (_v0.$ === 'Just') {
+			return $elm$core$Platform$Sub$batch(
+				_List_fromArray(
+					[
+						$elm$browser$Browser$Events$onMouseMove(
+						A2(
+							$elm$json$Json$Decode$map,
+							$author$project$Main$ConsoleResize,
+							A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float))),
+						$elm$browser$Browser$Events$onMouseUp(
+						$elm$json$Json$Decode$succeed($author$project$Main$EndConsoleResize))
+					]));
+		} else {
+			return $elm$core$Platform$Sub$none;
+		}
+	}();
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
 				dragSubscription,
+				panSubscription,
+				consoleResizeSubscription,
 				playbackSubscription,
 				keySubscription,
 				$author$project$Main$jsonFileSelected($author$project$Main$JsonFileLoaded),
@@ -6120,40 +7229,6 @@ var $elm$core$List$maximum = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
-		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
-				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
-				}
-			}
-		}
-	});
-var $elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			$elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
-	});
-var $elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6516,19 +7591,6 @@ var $elm$core$Dict$remove = F2(
 			return x;
 		}
 	});
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $author$project$Editor$Update$apply = F2(
 	function (msg, a) {
 		switch (msg.$) {
@@ -6650,13 +7712,6 @@ var $elm$core$Basics$clamp = F3(
 	function (low, high, number) {
 		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
 	});
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
 var $author$project$Algorithms$Operations$unique = function (xs) {
 	return $elm$core$Set$toList(
 		$elm$core$Set$fromList(xs));
@@ -6675,37 +7730,6 @@ var $author$project$Algorithms$Operations$effectiveAlphabet = function (automato
 	return $elm$core$List$isEmpty(automaton.alphabet) ? $author$project$Algorithms$Operations$usedSymbols(automaton) : $author$project$Algorithms$Operations$unique(automaton.alphabet);
 };
 var $author$project$Automaton$Core$empty = {accepting: _List_Nil, alphabet: _List_Nil, positions: $elm$core$Dict$empty, start: $elm$core$Maybe$Nothing, states: _List_Nil, transitions: _List_Nil};
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
 var $elm$core$Dict$member = F2(
 	function (key, dict) {
 		var _v0 = A2($elm$core$Dict$get, key, dict);
@@ -6901,82 +7925,6 @@ var $author$project$Automaton$Codec$decode = A7(
 				$elm$json$Json$Decode$succeed($elm$core$Dict$empty)
 			])));
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
-var $author$project$Main$dfaOnlyMessage = function (actionLabel) {
-	return actionLabel + ' je dostupne iba pre DFA. Najprv pouzi NFA -> DFA.';
-};
-var $elm$core$List$sortBy = _List_sortBy;
-var $elm$core$List$sort = function (xs) {
-	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
-};
-var $author$project$Automaton$Validate$duplicateTransitionGroups = function (automaton) {
-	return A2(
-		$elm$core$List$filterMap,
-		function (_v0) {
-			var _v1 = _v0.a;
-			var fromState = _v1.a;
-			var symbol = _v1.b;
-			var targets = _v0.b;
-			var uniqueTargets = $elm$core$List$sort(
-				$elm$core$Set$toList(
-					$elm$core$Set$fromList(targets)));
-			return ($elm$core$List$length(uniqueTargets) > 1) ? $elm$core$Maybe$Just(
-				{from: fromState, symbol: symbol, targets: uniqueTargets}) : $elm$core$Maybe$Nothing;
-		},
-		$elm$core$Dict$toList(
-			A3(
-				$elm$core$List$foldl,
-				F2(
-					function (transition, groups) {
-						var key = _Utils_Tuple2(transition.from, transition.symbol);
-						var existing = A2(
-							$elm$core$Maybe$withDefault,
-							_List_Nil,
-							A2($elm$core$Dict$get, key, groups));
-						return A3(
-							$elm$core$Dict$insert,
-							key,
-							A2($elm$core$List$cons, transition.to_, existing),
-							groups);
-					}),
-				$elm$core$Dict$empty,
-				automaton.transitions)));
-};
-var $author$project$Automaton$Validate$hasEpsilonTransitions = function (automaton) {
-	return A2(
-		$elm$core$List$any,
-		function (transition) {
-			return $elm$core$String$isEmpty(transition.symbol);
-		},
-		automaton.transitions);
-};
-var $author$project$Automaton$Validate$isDeterministic = function (automaton) {
-	return $elm$core$List$isEmpty(
-		$author$project$Automaton$Validate$duplicateTransitionGroups(automaton)) && (!$author$project$Automaton$Validate$hasEpsilonTransitions(automaton));
-};
-var $author$project$Main$stopAutoplay = function (model) {
-	var currentSimulation = model.simulation;
-	return _Utils_update(
-		model,
-		{
-			simulation: _Utils_update(
-				currentSimulation,
-				{autoplay: false})
-		});
-};
-var $author$project$Main$guardDeterministic = F3(
-	function (actionLabel, automaton, model) {
-		if ($author$project$Automaton$Validate$isDeterministic(automaton)) {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var stoppedModel = $author$project$Main$stopAutoplay(model);
-			return $elm$core$Maybe$Just(
-				_Utils_update(
-					stoppedModel,
-					{
-						msgInfo: $author$project$Main$dfaOnlyMessage(actionLabel)
-					}));
-		}
-	});
 var $author$project$Main$renderErrors = function (errs) {
 	if (!errs.b) {
 		return '';
@@ -7023,6 +7971,16 @@ var $author$project$Main$invalidAutomatonMessage = F2(
 	function (actionLabel, errs) {
 		return actionLabel + (' nie je mozne spustit: ' + $author$project$Main$renderErrors(errs));
 	});
+var $author$project$Main$stopAutoplay = function (model) {
+	var currentSimulation = model.simulation;
+	return _Utils_update(
+		model,
+		{
+			simulation: _Utils_update(
+				currentSimulation,
+				{autoplay: false})
+		});
+};
 var $author$project$Automaton$Validate$AcceptingNotInStates = function (a) {
 	return {$: 'AcceptingNotInStates', a: a};
 };
@@ -7109,6 +8067,68 @@ var $author$project$Main$guardValid = F3(
 					msgInfo: A2($author$project$Main$invalidAutomatonMessage, actionLabel, errs)
 				}));
 	});
+var $author$project$Main$dfaOnlyMessage = function (actionLabel) {
+	return actionLabel + ' je dostupne iba pre DFA. Najprv pouzi NFA -> DFA.';
+};
+var $author$project$Automaton$Validate$duplicateTransitionGroups = function (automaton) {
+	return A2(
+		$elm$core$List$filterMap,
+		function (_v0) {
+			var _v1 = _v0.a;
+			var fromState = _v1.a;
+			var symbol = _v1.b;
+			var targets = _v0.b;
+			var uniqueTargets = $elm$core$List$sort(
+				$elm$core$Set$toList(
+					$elm$core$Set$fromList(targets)));
+			return ($elm$core$List$length(uniqueTargets) > 1) ? $elm$core$Maybe$Just(
+				{from: fromState, symbol: symbol, targets: uniqueTargets}) : $elm$core$Maybe$Nothing;
+		},
+		$elm$core$Dict$toList(
+			A3(
+				$elm$core$List$foldl,
+				F2(
+					function (transition, groups) {
+						var key = _Utils_Tuple2(transition.from, transition.symbol);
+						var existing = A2(
+							$elm$core$Maybe$withDefault,
+							_List_Nil,
+							A2($elm$core$Dict$get, key, groups));
+						return A3(
+							$elm$core$Dict$insert,
+							key,
+							A2($elm$core$List$cons, transition.to_, existing),
+							groups);
+					}),
+				$elm$core$Dict$empty,
+				automaton.transitions)));
+};
+var $author$project$Automaton$Validate$hasEpsilonTransitions = function (automaton) {
+	return A2(
+		$elm$core$List$any,
+		function (transition) {
+			return $elm$core$String$isEmpty(transition.symbol);
+		},
+		automaton.transitions);
+};
+var $author$project$Automaton$Validate$isDeterministic = function (automaton) {
+	return $elm$core$List$isEmpty(
+		$author$project$Automaton$Validate$duplicateTransitionGroups(automaton)) && (!$author$project$Automaton$Validate$hasEpsilonTransitions(automaton));
+};
+var $author$project$Main$guardDeterministic = F3(
+	function (actionLabel, automaton, model) {
+		if ($author$project$Automaton$Validate$isDeterministic(automaton)) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var stoppedModel = $author$project$Main$stopAutoplay(model);
+			return $elm$core$Maybe$Just(
+				_Utils_update(
+					stoppedModel,
+					{
+						msgInfo: $author$project$Main$dfaOnlyMessage(actionLabel)
+					}));
+		}
+	});
 var $author$project$Main$guardValidDeterministic = F3(
 	function (actionLabel, automaton, model) {
 		var _v0 = A3($author$project$Main$guardValid, actionLabel, automaton, model);
@@ -7169,25 +8189,6 @@ var $author$project$Main$handleGraphStateClick = F2(
 			} else {
 				return A2($author$project$Main$startGraphTransition, stateId, model);
 			}
-		}
-	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
 		}
 	});
 var $author$project$Algorithms$Operations$productOp = F3(
@@ -7331,29 +8332,11 @@ var $author$project$Algorithms$Operations$intersection = F2(
 			a0,
 			b0);
 	});
-var $elm$core$String$toLower = _String_toLower;
-var $elm$core$String$trim = _String_trim;
 var $author$project$Main$isExplicitEpsilonInput = function (rawSymbol) {
 	var trimmed = $elm$core$String$trim(rawSymbol);
 	var lowered = $elm$core$String$toLower(trimmed);
 	return (trimmed === 'ε') || ((lowered === 'eps') || (lowered === 'epsilon'));
 };
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
-	});
-var $elm$core$List$concat = function (lists) {
-	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
-};
-var $elm$core$List$concatMap = F2(
-	function (f, list) {
-		return $elm$core$List$concat(
-			A2($elm$core$List$map, f, list));
-	});
 var $elm$core$Set$isEmpty = function (_v0) {
 	var dict = _v0.a;
 	return $elm$core$Dict$isEmpty(dict);
@@ -8032,34 +9015,7 @@ var $author$project$Main$simulationFinished = function (simulation) {
 			return false;
 	}
 };
-var $author$project$Main$SimAccepted = {$: 'SimAccepted'};
-var $author$project$Main$SimRejected = {$: 'SimRejected'};
 var $author$project$Main$SimRunning = {$: 'SimRunning'};
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var $author$project$Main$currentTapeSymbol = function (simulation) {
-	return $elm$core$List$head(
-		A2($elm$core$List$drop, simulation.currentIndex, simulation.symbols));
-};
 var $author$project$Main$findTransition = F3(
 	function (automaton, stateId, symbol) {
 		return $elm$core$List$head(
@@ -8070,7 +9026,6 @@ var $author$project$Main$findTransition = F3(
 				},
 				automaton.transitions));
 	});
-var $elm$core$Basics$ge = _Utils_ge;
 var $author$project$Main$stepSimulation = F2(
 	function (automaton, simulation) {
 		var _v0 = simulation.currentState;
@@ -8133,59 +9088,6 @@ var $author$project$Main$runSimulationToEnd = F2(
 			}
 		}
 	});
-var $author$project$Main$simulationStatusText = function (simulation) {
-	var _v0 = simulation.status;
-	switch (_v0.$) {
-		case 'SimReady':
-			var _v1 = simulation.currentState;
-			if (_v1.$ === 'Just') {
-				var stateId = _v1.a;
-				return 'Simulacia je pripravena v stave q' + ($elm$core$String$fromInt(stateId) + '.');
-			} else {
-				return 'Automat nema startovaci stav.';
-			}
-		case 'SimRunning':
-			var _v2 = simulation.currentState;
-			if (_v2.$ === 'Just') {
-				var stateId = _v2.a;
-				return 'Aktualne si v stave q' + ($elm$core$String$fromInt(stateId) + '.');
-			} else {
-				return 'Automat sa nevie pohnut dalej.';
-			}
-		case 'SimAccepted':
-			var _v3 = simulation.currentState;
-			if (_v3.$ === 'Just') {
-				var stateId = _v3.a;
-				return 'Slovo bolo prijate. Automat skoncil v stave q' + ($elm$core$String$fromInt(stateId) + '.');
-			} else {
-				return 'Slovo bolo prijate.';
-			}
-		case 'SimRejected':
-			var _v4 = simulation.currentState;
-			if (_v4.$ === 'Just') {
-				var stateId = _v4.a;
-				return 'Slovo bolo zamietnute. Automat skoncil v stave q' + ($elm$core$String$fromInt(stateId) + '.');
-			} else {
-				return 'Slovo bolo zamietnute.';
-			}
-		default:
-			var _v5 = _Utils_Tuple2(
-				simulation.currentState,
-				$author$project$Main$currentTapeSymbol(simulation));
-			if (_v5.a.$ === 'Just') {
-				if (_v5.b.$ === 'Just') {
-					var stateId = _v5.a.a;
-					var symbol = _v5.b.a;
-					return 'Automat sa zasekol v stave q' + ($elm$core$String$fromInt(stateId) + (' na symbole \'' + (symbol + '\'.')));
-				} else {
-					return 'Automat sa zasekol.';
-				}
-			} else {
-				var _v6 = _v5.a;
-				return 'Automat nema definovany startovaci stav.';
-			}
-	}
-};
 var $author$project$Editor$Update$undo = function (h) {
 	var _v0 = h.past;
 	if (_v0.b) {
@@ -8210,6 +9112,19 @@ var $author$project$Algorithms$Operations$union = F2(
 				}),
 			a0,
 			b0);
+	});
+var $author$project$Main$graphBaseHeight = 840;
+var $author$project$Main$graphBaseWidth = 1220;
+var $author$project$Main$zoomCanvasTo = F2(
+	function (requestedZoom, canvasView) {
+		var nextZoom = A3($elm$core$Basics$clamp, 0.45, 2.6, requestedZoom);
+		var nextWidth = $author$project$Main$graphBaseWidth / nextZoom;
+		var nextHeight = $author$project$Main$graphBaseHeight / nextZoom;
+		var currentWidth = $author$project$Main$graphBaseWidth / canvasView.zoom;
+		var currentHeight = $author$project$Main$graphBaseHeight / canvasView.zoom;
+		var centerY = canvasView.panY + (currentHeight / 2);
+		var centerX = canvasView.panX + (currentWidth / 2);
+		return {panX: centerX - (nextWidth / 2), panY: centerY - (nextHeight / 2), zoom: nextZoom};
 	});
 var $author$project$Main$commitTransition = F4(
 	function (from, symbol, to_, model) {
@@ -8270,6 +9185,55 @@ var $author$project$Main$update = F2(
 				return _Utils_update(
 					model,
 					{algorithmsSubTab: subTab});
+			case 'CanvasZoomIn':
+				return _Utils_update(
+					model,
+					{
+						canvasView: A2($author$project$Main$zoomCanvasTo, model.canvasView.zoom * 1.18, model.canvasView)
+					});
+			case 'CanvasZoomOut':
+				return _Utils_update(
+					model,
+					{
+						canvasView: A2($author$project$Main$zoomCanvasTo, model.canvasView.zoom / 1.18, model.canvasView)
+					});
+			case 'ResetCanvasView':
+				return _Utils_update(
+					model,
+					{
+						canvasPan: $elm$core$Maybe$Nothing,
+						canvasView: {panX: 0, panY: 0, zoom: 1}
+					});
+			case 'StartConsoleResize':
+				var clientY = msg.a;
+				return _Utils_update(
+					model,
+					{
+						consoleResize: $elm$core$Maybe$Just(
+							{startHeight: model.consoleHeight, startY: clientY})
+					});
+			case 'ConsoleResize':
+				var clientY = msg.a;
+				var _v2 = model.consoleResize;
+				if (_v2.$ === 'Just') {
+					var resizeState = _v2.a;
+					var nextHeight = resizeState.startHeight - (clientY - resizeState.startY);
+					return _Utils_update(
+						model,
+						{
+							consoleHeight: A3($elm$core$Basics$clamp, 120, 460, nextHeight)
+						});
+				} else {
+					return model;
+				}
+			case 'EndConsoleResize':
+				return _Utils_update(
+					model,
+					{consoleResize: $elm$core$Maybe$Nothing});
+			case 'ClearConsole':
+				return _Utils_update(
+					model,
+					{consoleEntries: _List_Nil});
 			case 'ToggleGuide':
 				return model.guideOpen ? _Utils_update(
 					model,
@@ -8343,9 +9307,9 @@ var $author$project$Main$update = F2(
 						simulation: A2($author$project$Main$resetSimulation, model.history.present, s)
 					});
 			case 'CheckWord':
-				var _v2 = A3($author$project$Main$guardDeterministic, 'Simulacia slova', model.history.present, model);
-				if (_v2.$ === 'Just') {
-					var guardedModel = _v2.a;
+				var _v3 = A3($author$project$Main$guardValidDeterministic, 'Simulacia slova', model.history.present, model);
+				if (_v3.$ === 'Just') {
+					var guardedModel = _v3.a;
 					return guardedModel;
 				} else {
 					var finishedSimulation = A2(
@@ -8368,9 +9332,9 @@ var $author$project$Main$update = F2(
 						simulation: simulation
 					});
 			case 'StepSimulation':
-				var _v3 = A3($author$project$Main$guardDeterministic, 'Krokovanie simulacie', model.history.present, model);
-				if (_v3.$ === 'Just') {
-					var guardedModel = _v3.a;
+				var _v4 = A3($author$project$Main$guardValidDeterministic, 'Krokovanie simulacie', model.history.present, model);
+				if (_v4.$ === 'Just') {
+					var guardedModel = _v4.a;
 					return guardedModel;
 				} else {
 					var nextSimulation = A2($author$project$Main$stepSimulation, model.history.present, model.simulation);
@@ -8382,9 +9346,9 @@ var $author$project$Main$update = F2(
 						});
 				}
 			case 'ToggleSimulationPlayback':
-				var _v4 = A3($author$project$Main$guardDeterministic, 'Automaticke prehravanie', model.history.present, model);
-				if (_v4.$ === 'Just') {
-					var guardedModel = _v4.a;
+				var _v5 = A3($author$project$Main$guardValidDeterministic, 'Automaticke prehravanie', model.history.present, model);
+				if (_v5.$ === 'Just') {
+					var guardedModel = _v5.a;
 					return guardedModel;
 				} else {
 					var baseSimulation = $author$project$Main$simulationFinished(model.simulation) ? A2($author$project$Main$resetSimulation, model.history.present, model.inputWord) : model.simulation;
@@ -8457,11 +9421,11 @@ var $author$project$Main$update = F2(
 				var mt = $elm$core$String$toInt(model.toSel);
 				var mf = $elm$core$String$toInt(model.fromSel);
 				var explicitEpsilon = $author$project$Main$isExplicitEpsilonInput(model.symSel);
-				var _v5 = _Utils_Tuple3(mf, mt, normalizedSymbol);
-				if ((_v5.a.$ === 'Just') && (_v5.b.$ === 'Just')) {
-					var f = _v5.a.a;
-					var t = _v5.b.a;
-					var sym = _v5.c;
+				var _v6 = _Utils_Tuple3(mf, mt, normalizedSymbol);
+				if ((_v6.a.$ === 'Just') && (_v6.b.$ === 'Just')) {
+					var f = _v6.a.a;
+					var t = _v6.b.a;
+					var sym = _v6.c;
 					return ($elm$core$String$isEmpty(sym) && (!explicitEpsilon)) ? _Utils_update(
 						model,
 						{msgInfo: 'Zadaj symbol prechodu.'}) : A4($author$project$Main$commitTransition, f, sym, t, model);
@@ -8473,10 +9437,10 @@ var $author$project$Main$update = F2(
 			case 'AddEpsilonTransitionClicked':
 				var mt = $elm$core$String$toInt(model.toSel);
 				var mf = $elm$core$String$toInt(model.fromSel);
-				var _v6 = _Utils_Tuple2(mf, mt);
-				if ((_v6.a.$ === 'Just') && (_v6.b.$ === 'Just')) {
-					var f = _v6.a.a;
-					var t = _v6.b.a;
+				var _v7 = _Utils_Tuple2(mf, mt);
+				if ((_v7.a.$ === 'Just') && (_v7.b.$ === 'Just')) {
+					var f = _v7.a.a;
+					var t = _v7.b.a;
 					return A4($author$project$Main$commitTransition, f, '', t, model);
 				} else {
 					return _Utils_update(
@@ -8498,12 +9462,12 @@ var $author$project$Main$update = F2(
 							model.graphTransitionDraft)
 					});
 			case 'ConfirmGraphTransition':
-				var _v7 = model.graphTransitionDraft;
-				if (_v7.$ === 'Just') {
-					var draft = _v7.a;
-					var _v8 = draft.to_;
-					if (_v8.$ === 'Just') {
-						var targetState = _v8.a;
+				var _v8 = model.graphTransitionDraft;
+				if (_v8.$ === 'Just') {
+					var draft = _v8.a;
+					var _v9 = draft.to_;
+					if (_v9.$ === 'Just') {
+						var targetState = _v9.a;
 						var normalizedSymbol = $author$project$Main$normalizeTypedSymbol(draft.symbol);
 						var explicitEpsilon = $author$project$Main$isExplicitEpsilonInput(draft.symbol);
 						return ($elm$core$String$isEmpty(normalizedSymbol) && (!explicitEpsilon)) ? _Utils_update(
@@ -8525,12 +9489,12 @@ var $author$project$Main$update = F2(
 					return model;
 				}
 			case 'ConfirmGraphEpsilonTransition':
-				var _v9 = model.graphTransitionDraft;
-				if (_v9.$ === 'Just') {
-					var draft = _v9.a;
-					var _v10 = draft.to_;
-					if (_v10.$ === 'Just') {
-						var targetState = _v10.a;
+				var _v10 = model.graphTransitionDraft;
+				if (_v10.$ === 'Just') {
+					var draft = _v10.a;
+					var _v11 = draft.to_;
+					if (_v11.$ === 'Just') {
+						var targetState = _v11.a;
 						return A4($author$project$Main$commitTransition, draft.from, '', targetState, model);
 					} else {
 						return _Utils_update(
@@ -8582,8 +9546,8 @@ var $author$project$Main$update = F2(
 					{jsonFileTarget: $author$project$Main$OtherAutomatonFile, msgInfo: 'Vyber JSON subor pre druhy automat.'});
 			case 'JsonFileLoaded':
 				var fileContent = msg.a;
-				var _v11 = model.jsonFileTarget;
-				if (_v11.$ === 'MainImportFile') {
+				var _v12 = model.jsonFileTarget;
+				if (_v12.$ === 'MainImportFile') {
 					return _Utils_update(
 						model,
 						{importText: fileContent, jsonFileTarget: $author$project$Main$MainImportFile, msgInfo: 'Obsah JSON suboru bol nacitany.'});
@@ -8593,9 +9557,9 @@ var $author$project$Main$update = F2(
 						{jsonFileTarget: $author$project$Main$MainImportFile, msgInfo: 'Druhy automat bol nacitany zo suboru.', otherText: fileContent});
 				}
 			case 'ImportJson':
-				var _v12 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.importText);
-				if (_v12.$ === 'Ok') {
-					var automaton = _v12.a;
+				var _v13 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.importText);
+				if (_v13.$ === 'Ok') {
+					var automaton = _v13.a;
 					var enriched = $author$project$Main$ensureAlphabetCoverage(automaton);
 					var errs = $author$project$Automaton$Validate$validate(enriched);
 					var hist = A2($author$project$Editor$Update$push, enriched, model.history);
@@ -8613,7 +9577,7 @@ var $author$project$Main$update = F2(
 							msgInfo: 'Import obsahuje chyby: ' + $author$project$Main$renderErrors(errs)
 						});
 				} else {
-					var e = _v12.a;
+					var e = _v13.a;
 					return _Utils_update(
 						model,
 						{
@@ -8626,9 +9590,9 @@ var $author$project$Main$update = F2(
 					model,
 					{otherText: s});
 			case 'NfaToDfa':
-				var _v13 = A3($author$project$Main$guardValid, 'NFA -> DFA', model.history.present, model);
-				if (_v13.$ === 'Just') {
-					var guardedModel = _v13.a;
+				var _v14 = A3($author$project$Main$guardValid, 'NFA -> DFA', model.history.present, model);
+				if (_v14.$ === 'Just') {
+					var guardedModel = _v14.a;
 					return guardedModel;
 				} else {
 					var dfa = $author$project$Main$ensureAlphabetCoverage(
@@ -8644,9 +9608,9 @@ var $author$project$Main$update = F2(
 						});
 				}
 			case 'MinimizeDfa':
-				var _v14 = A3($author$project$Main$guardValidDeterministic, 'Minimalizacia', model.history.present, model);
-				if (_v14.$ === 'Just') {
-					var guardedModel = _v14.a;
+				var _v15 = A3($author$project$Main$guardValidDeterministic, 'Minimalizacia', model.history.present, model);
+				if (_v15.$ === 'Just') {
+					var guardedModel = _v15.a;
 					return guardedModel;
 				} else {
 					var mini = $author$project$Main$ensureAlphabetCoverage(
@@ -8662,9 +9626,9 @@ var $author$project$Main$update = F2(
 						});
 				}
 			case 'ComplementDfa':
-				var _v15 = A3($author$project$Main$guardValidDeterministic, 'Komplement', model.history.present, model);
-				if (_v15.$ === 'Just') {
-					var guardedModel = _v15.a;
+				var _v16 = A3($author$project$Main$guardValidDeterministic, 'Komplement', model.history.present, model);
+				if (_v16.$ === 'Just') {
+					var guardedModel = _v16.a;
 					return guardedModel;
 				} else {
 					var comp = $author$project$Main$ensureAlphabetCoverage(
@@ -8680,17 +9644,17 @@ var $author$project$Main$update = F2(
 						});
 				}
 			case 'UnionWithOther':
-				var _v16 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
-				if (_v16.$ === 'Ok') {
-					var b = _v16.a;
-					var _v17 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', model.history.present, model);
-					if (_v17.$ === 'Just') {
-						var guardedModel = _v17.a;
+				var _v17 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
+				if (_v17.$ === 'Ok') {
+					var b = _v17.a;
+					var _v18 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', model.history.present, model);
+					if (_v18.$ === 'Just') {
+						var guardedModel = _v18.a;
 						return guardedModel;
 					} else {
-						var _v18 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', b, model);
-						if (_v18.$ === 'Just') {
-							var guardedModel = _v18.a;
+						var _v19 = A3($author$project$Main$guardValidDeterministic, 'Zjednotenie', b, model);
+						if (_v19.$ === 'Just') {
+							var guardedModel = _v19.a;
 							return guardedModel;
 						} else {
 							var u = $author$project$Main$ensureAlphabetCoverage(
@@ -8708,7 +9672,7 @@ var $author$project$Main$update = F2(
 						}
 					}
 				} else {
-					var e = _v16.a;
+					var e = _v17.a;
 					return _Utils_update(
 						model,
 						{
@@ -8716,17 +9680,17 @@ var $author$project$Main$update = F2(
 						});
 				}
 			case 'IntersectWithOther':
-				var _v19 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
-				if (_v19.$ === 'Ok') {
-					var b = _v19.a;
-					var _v20 = A3($author$project$Main$guardValidDeterministic, 'Prienik', model.history.present, model);
-					if (_v20.$ === 'Just') {
-						var guardedModel = _v20.a;
+				var _v20 = A2($elm$json$Json$Decode$decodeString, $author$project$Automaton$Codec$decode, model.otherText);
+				if (_v20.$ === 'Ok') {
+					var b = _v20.a;
+					var _v21 = A3($author$project$Main$guardValidDeterministic, 'Prienik', model.history.present, model);
+					if (_v21.$ === 'Just') {
+						var guardedModel = _v21.a;
 						return guardedModel;
 					} else {
-						var _v21 = A3($author$project$Main$guardValidDeterministic, 'Prienik', b, model);
-						if (_v21.$ === 'Just') {
-							var guardedModel = _v21.a;
+						var _v22 = A3($author$project$Main$guardValidDeterministic, 'Prienik', b, model);
+						if (_v22.$ === 'Just') {
+							var guardedModel = _v22.a;
 							return guardedModel;
 						} else {
 							var i = $author$project$Main$ensureAlphabetCoverage(
@@ -8744,7 +9708,7 @@ var $author$project$Main$update = F2(
 						}
 					}
 				} else {
-					var e = _v19.a;
+					var e = _v20.a;
 					return _Utils_update(
 						model,
 						{
@@ -8776,17 +9740,19 @@ var $author$project$Main$update = F2(
 					case 'Drag':
 						var clientX = graphMsg.a;
 						var clientY = graphMsg.b;
-						var _v23 = _Utils_Tuple2(model.dragState.dragging, model.dragState.original);
-						if (_v23.a.$ === 'Just') {
-							if (_v23.b.$ === 'Just') {
-								var stateId = _v23.a.a;
-								var originalAutomaton = _v23.b.a;
-								var newY = A3($elm$core$Basics$clamp, 48, 792, clientY - model.dragState.offsetY);
-								var newX = A3($elm$core$Basics$clamp, 48, 1172, clientX - model.dragState.offsetX);
+						var _v24 = _Utils_Tuple2(model.dragState.dragging, model.dragState.original);
+						if (_v24.a.$ === 'Just') {
+							if (_v24.b.$ === 'Just') {
+								var stateId = _v24.a.a;
+								var originalAutomaton = _v24.b.a;
 								var originalPosition = A2(
 									$elm$core$Maybe$withDefault,
-									{x: newX, y: newY},
+									{x: 100, y: 100},
 									A2($elm$core$Dict$get, stateId, originalAutomaton.positions));
+								var startClientX = originalPosition.x + model.dragState.offsetX;
+								var startClientY = originalPosition.y + model.dragState.offsetY;
+								var newY = A3($elm$core$Basics$clamp, 48, 792, originalPosition.y + ((clientY - startClientY) / model.canvasView.zoom));
+								var newX = A3($elm$core$Basics$clamp, 48, 1172, originalPosition.x + ((clientX - startClientX) / model.canvasView.zoom));
 								var movedEnough = model.dragState.moved || (($elm$core$Basics$abs(newX - originalPosition.x) > 5) || ($elm$core$Basics$abs(newY - originalPosition.y) > 5));
 								if (movedEnough) {
 									var updatedAutomaton = A2(
@@ -8808,16 +9774,16 @@ var $author$project$Main$update = F2(
 								return model;
 							}
 						} else {
-							var _v24 = _v23.a;
+							var _v25 = _v24.a;
 							return model;
 						}
 					case 'EndDrag':
-						var _v25 = _Utils_Tuple3(model.dragState.dragging, model.dragState.original, model.dragState.moved);
-						_v25$2:
+						var _v26 = _Utils_Tuple3(model.dragState.dragging, model.dragState.original, model.dragState.moved);
+						_v26$2:
 						while (true) {
-							if (!_v25.c) {
-								if (_v25.a.$ === 'Just') {
-									var stateId = _v25.a.a;
+							if (!_v26.c) {
+								if (_v26.a.$ === 'Just') {
+									var stateId = _v26.a.a;
 									return A2(
 										$author$project$Main$handleGraphStateClick,
 										stateId,
@@ -8827,11 +9793,11 @@ var $author$project$Main$update = F2(
 												dragState: {dragging: $elm$core$Maybe$Nothing, moved: false, offsetX: 0, offsetY: 0, original: $elm$core$Maybe$Nothing}
 											}));
 								} else {
-									break _v25$2;
+									break _v26$2;
 								}
 							} else {
-								if (_v25.b.$ === 'Just') {
-									var oldAutomaton = _v25.b.a;
+								if (_v26.b.$ === 'Just') {
+									var oldAutomaton = _v26.b.a;
 									return _Utils_update(
 										model,
 										{
@@ -8844,7 +9810,7 @@ var $author$project$Main$update = F2(
 											msgInfo: 'Pozicia stavu bola ulozena.'
 										});
 								} else {
-									break _v25$2;
+									break _v26$2;
 								}
 							}
 						}
@@ -8853,8 +9819,46 @@ var $author$project$Main$update = F2(
 							{
 								dragState: {dragging: $elm$core$Maybe$Nothing, moved: false, offsetX: 0, offsetY: 0, original: $elm$core$Maybe$Nothing}
 							});
-					default:
+					case 'NoOp':
 						return model;
+					case 'StartPan':
+						var clientX = graphMsg.a;
+						var clientY = graphMsg.b;
+						return _Utils_update(
+							model,
+							{
+								canvasPan: $elm$core$Maybe$Just(
+									{startPanX: model.canvasView.panX, startPanY: model.canvasView.panY, startX: clientX, startY: clientY})
+							});
+					case 'Pan':
+						var clientX = graphMsg.a;
+						var clientY = graphMsg.b;
+						var _v27 = model.canvasPan;
+						if (_v27.$ === 'Just') {
+							var panState = _v27.a;
+							return _Utils_update(
+								model,
+								{
+									canvasView: {panX: panState.startPanX - ((clientX - panState.startX) / model.canvasView.zoom), panY: panState.startPanY - ((clientY - panState.startY) / model.canvasView.zoom), zoom: model.canvasView.zoom}
+								});
+						} else {
+							return model;
+						}
+					case 'EndPan':
+						return _Utils_update(
+							model,
+							{canvasPan: $elm$core$Maybe$Nothing});
+					default:
+						var deltaY = graphMsg.a;
+						return (deltaY < 0) ? _Utils_update(
+							model,
+							{
+								canvasView: A2($author$project$Main$zoomCanvasTo, model.canvasView.zoom * 1.12, model.canvasView)
+							}) : _Utils_update(
+							model,
+							{
+								canvasView: A2($author$project$Main$zoomCanvasTo, model.canvasView.zoom / 1.12, model.canvasView)
+							});
 				}
 		}
 	});
@@ -8906,7 +9910,7 @@ var $author$project$Main$guidePrimaryActionLabel = function (guideTab) {
 var $author$project$Main$guideTabSubtitle = function (guideTab) {
 	switch (guideTab.$) {
 		case 'GuideEditorTab':
-			return 'Prakticky navod na budovanie stavov, prechodov, epsilon hran a upravu grafu priamo na platne.';
+			return 'Prakticky navod na budovanie stavov, prechodov, epsilon hran, zoomu a posunu platna.';
 		case 'GuideSimulationTab':
 			return 'Ako funguje krokovanie slova, prehravanie a vizualne zvyraznenie automatu pri validnom DFA.';
 		case 'GuideConversionTab':
@@ -8916,7 +9920,7 @@ var $author$project$Main$guideTabSubtitle = function (guideTab) {
 		case 'GuideErrorsTab':
 			return 'Najcastejsie validacne problemy a co presne znamenaju pri tvorbe alebo importe automatu.';
 		default:
-			return 'Ako je appka poskladana, co uklada automaticky a ake ma aktualne limity.';
+			return 'Ako je appka poskladana, co uklada automaticky, ako funguje konzola a ake ma aktualne limity.';
 	}
 };
 var $author$project$Main$GuideDataTab = {$: 'GuideDataTab'};
@@ -9321,7 +10325,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Startovaci stav', 'Hviezdicka nastavi vybrany stav ako jediny start automatu.'),
 								_Utils_Tuple2('Akceptacny stav', 'Fajka prepina akceptacny stav. V grafe ho spoznas podla dvojitej kruznice.'),
 								_Utils_Tuple2('Odstranenie stavu', 'Kos odstrani stav aj vsetky prechody, ktore do neho vedu alebo z neho vychadzaju.'),
-								_Utils_Tuple2('Presun na platne', 'Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie a do localStorage.')
+								_Utils_Tuple2('Presun na platne', 'Stav mozes chytit mysou priamo v grafe. Nova pozicia sa po pusteni ulozi do historie a do localStorage.'),
+								_Utils_Tuple2('Zoom a posun platna', 'Tlacidlami nad grafom alebo kolieskom mysi vies platno priblizit a oddialit. Prazdne miesto na platne vies tahat mysou.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9336,6 +10341,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Symbol prechodu', 'Pole Symbol akceptuje lubovolny textovy symbol. Ak napises epsilon, eps alebo ε, vytvori sa epsilon prechod a symbol sa nezaradi do abecedy.'),
 								_Utils_Tuple2('Samostatne tlacidlo', 'V klasickom editore aj v paneli nad grafom je tlacidlo na okamzite pridanie epsilon prechodu bez pisania symbolu.'),
 								_Utils_Tuple2('Zoznam prechodov', 'Podkarta Zoznam ukazuje vsetky prechody a dovoluje ich mazat po jednom.'),
+								_Utils_Tuple2('Konzolovy zapis', 'Editor zapisuje konkretne akcie do konzoly, napr. ktory stav bol pridany alebo ktory prechod bol vytvoreny.'),
 								_Utils_Tuple2('DFA vs NFA', 'Ak z jedneho stavu vedu pre rovnaky symbol rozne ciele alebo epsilon prechody, automat je NFA a cast algoritmov sa zablokuje.')
 							]))
 					]));
@@ -9377,7 +10383,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Aktualny stav', 'Zvyrazni sa ringom okolo uzla, aby bolo vidno, kde sa automat prave nachadza.'),
 								_Utils_Tuple2('Posledny prechod', 'Pouzita hrana aj jej label sa po kroku zvyraznia.'),
 								_Utils_Tuple2('Zaseknutie', 'Ak pre aktualny stav a symbol chyba prechod, simulacia sa zastavi na danom mieste.'),
-								_Utils_Tuple2('DFA obmedzenie', 'Krokovanie aj autoplay su urcene pre validny DFA.')
+								_Utils_Tuple2('DFA obmedzenie', 'Krokovanie aj autoplay su urcene pre validny DFA.'),
+								_Utils_Tuple2('Konzola', 'Vysledok simulacie sa zapise aj do spodnej konzoly spolu so vstupom, koncovym stavom a poctom precitanych symbolov.')
 							]))
 					]));
 		case 'GuideConversionTab':
@@ -9403,10 +10410,10 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 						_List_fromArray(
 							[
 								_Utils_Tuple2('NFA -> DFA', 'Pouziva subset construction vratane epsilon-closure, takze podporuje aj epsilon prechody.'),
-								_Utils_Tuple2('Minimalizacia', 'Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy.'),
+								_Utils_Tuple2('Minimalizacia', 'Odstrani nedosiahnutelne stavy, totalizuje automat a potom zluci ekvivalentne stavy. Konzola rozlisi, ci sa pocet stavov zmensil alebo zostal rovnaky.'),
 								_Utils_Tuple2('Komplement', 'Doplni chybajuce prechody do sink stavu a invertuje accepting mnozinu.'),
 								_Utils_Tuple2('Zjednotenie a prienik', 'Nacita druhy automat z JSON textu alebo zo suboru a spravi produktovu konstrukciu nad spolocnou abecedou.'),
-								_Utils_Tuple2('Po spusteni algoritmu', 'Vysledok prepise aktualny automat, ulozi sa do historie undo/redo a priebezne aj do localStorage.')
+								_Utils_Tuple2('Po spusteni algoritmu', 'Vysledok prepise aktualny automat, ulozi sa do historie undo/redo, priebezne do localStorage a vypise zhrnutie do konzoly.')
 							])),
 						A3(
 						$author$project$Main$viewGuideActionTable,
@@ -9533,7 +10540,8 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('Historia zmien', 'Editor uklada zmeny do undo/redo historie.'),
 								_Utils_Tuple2('Vizualizacia', 'Graf sa kresli ako SVG s loopmi, obojsmernymi hranami, zoskupenymi labelmi a klikacou tvorbou prechodov.'),
 								_Utils_Tuple2('Abeceda', 'Pri editacii sa alphabet vie automaticky doplnat o realne pouzite symboly.'),
-								_Utils_Tuple2('Perzistencia', 'Obnovenie po refreshi je riesene cez localStorage a porty medzi Elm a index.html.')
+								_Utils_Tuple2('Perzistencia', 'Obnovenie po refreshi je riesene cez localStorage a porty medzi Elm a index.html.'),
+								_Utils_Tuple2('Konzola', 'Konzola je overlay nad platom, takze neodsúva graf. Jej vysku vies menit tahanim hornej listy.')
 							])),
 						A3(
 						$author$project$Main$viewGuideInfoGrid,
@@ -9545,6 +10553,7 @@ var $author$project$Main$viewGuideTabContent = function (guideTab) {
 								_Utils_Tuple2('NFA -> DFA', 'Subset construction podporuje aj epsilon prechody cez epsilon-closure.'),
 								_Utils_Tuple2('Prepis vysledku', 'Algoritmy prepisu aktualny automat v editore, preto sa oplati vyuzivat undo/redo alebo export.'),
 								_Utils_Tuple2('Perzistencia', 'Aktualny automat sa uklada do localStorage pre pohodlne obnovenie po refreshi.'),
+								_Utils_Tuple2('Konzola', 'Spodny panel sa da tahat hore alebo dole a zobrazuje hlasenia, chyby, konkretne editacne akcie, vysledky simulacie a zhrnutia algoritmov.'),
 								_Utils_Tuple2('Ciselne ID stavov', 'Stavy su identifikovane cislami a novy stav dostane dalsie volne ID.')
 							]))
 					]));
@@ -9718,9 +10727,463 @@ var $author$project$Main$viewGuideOverlay = function (model) {
 					]))
 			]));
 };
+var $author$project$Main$CanvasZoomIn = {$: 'CanvasZoomIn'};
+var $author$project$Main$CanvasZoomOut = {$: 'CanvasZoomOut'};
 var $author$project$Main$Redo = {$: 'Redo'};
+var $author$project$Main$ResetCanvasView = {$: 'ResetCanvasView'};
 var $author$project$Main$ToggleGuide = {$: 'ToggleGuide'};
 var $author$project$Main$Undo = {$: 'Undo'};
+var $elm$core$Basics$round = _Basics_round;
+var $author$project$Main$viewCanvasControlButton = F3(
+	function (icon, titleText, buttonMsg) {
+		return A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#3a2c23] bg-[#211914] text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+					$elm$html$Html$Events$onClick(buttonMsg),
+					$elm$html$Html$Attributes$title(titleText)
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$i,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class(icon)
+						]),
+					_List_Nil)
+				]));
+	});
+var $author$project$Main$ClearConsole = {$: 'ClearConsole'};
+var $author$project$Main$StartConsoleResize = function (a) {
+	return {$: 'StartConsoleResize', a: a};
+};
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Main$consoleEntryClass = function (kind) {
+	switch (kind.$) {
+		case 'ConsoleInfo':
+			return 'border-[#3a2c23] bg-[#15110f]';
+		case 'ConsoleSuccess':
+			return 'border-emerald-500/25 bg-emerald-500/10';
+		case 'ConsoleWarning':
+			return 'border-amber-500/25 bg-amber-500/10';
+		case 'ConsoleError':
+			return 'border-rose-500/30 bg-rose-500/10';
+		default:
+			return 'border-blue-500/25 bg-blue-500/10';
+	}
+};
+var $author$project$Main$consoleKindLabel = function (kind) {
+	switch (kind.$) {
+		case 'ConsoleInfo':
+			return 'info';
+		case 'ConsoleSuccess':
+			return 'ok';
+		case 'ConsoleWarning':
+			return 'pozor';
+		case 'ConsoleError':
+			return 'chyba';
+		default:
+			return 'algoritmus';
+	}
+};
+var $author$project$Main$viewConsoleEntry = function (entry) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class(
+				'mb-3 rounded-2xl border px-4 py-3 ' + $author$project$Main$consoleEntryClass(entry.kind))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('mb-2 flex items-center justify-between gap-3')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('font-sans text-sm font-bold')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(entry.title)
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] opacity-80')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$Main$consoleKindLabel(entry.kind))
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('space-y-1 text-[#e9d6c2]')
+					]),
+				A2(
+					$elm$core$List$map,
+					function (line) {
+						return A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(line)
+								]));
+					},
+					entry.body))
+			]));
+};
+var $author$project$Main$viewConsolePanel = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('absolute bottom-0 left-0 right-0 z-30 border-t border-[#2b211b] bg-[#0d0a09]/96 shadow-[0_-18px_50px_rgba(0,0,0,0.42)] backdrop-blur-sm'),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'height',
+				$elm$core$String$fromFloat(model.consoleHeight) + 'px')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('flex h-full min-h-0 flex-col')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('group flex h-3 shrink-0 cursor-row-resize items-center justify-center bg-[#15110f] hover:bg-[#211914]'),
+								A2(
+								$elm$html$Html$Events$on,
+								'mousedown',
+								A2(
+									$elm$json$Json$Decode$map,
+									$author$project$Main$StartConsoleResize,
+									A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float))),
+								$elm$html$Html$Attributes$title('Tahaj hore alebo dole pre zmenu vysky konzoly')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('h-1 w-20 rounded-full bg-[#4a392f] transition group-hover:bg-amber-400/70')
+									]),
+								_List_Nil)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex shrink-0 items-center justify-between border-b border-[#2b211b] px-5 py-3')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$h3,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-sm font-bold uppercase tracking-[0.16em] text-[#f5ede3]')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Konzola')
+											])),
+										A2(
+										$elm$html$Html$p,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('mt-1 text-xs text-[#9f8670]')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Hlasenia aplikacie a postup algoritmov.')
+											]))
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('rounded-xl border border-[#3a2c23] bg-[#171210] px-3 py-2 text-xs font-semibold text-[#d8c1aa] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+										$elm$html$Html$Events$onClick($author$project$Main$ClearConsole)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Vycistit')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-xs leading-6 scrollbar-thin')
+							]),
+						$elm$core$List$isEmpty(model.consoleEntries) ? _List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('rounded-2xl border border-dashed border-[#3a2c23] px-4 py-6 text-center text-[#8f7663]')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Konzola je prazdna.')
+									]))
+							]) : A2($elm$core$List$map, $author$project$Main$viewConsoleEntry, model.consoleEntries))
+					]))
+			]));
+};
+var $author$project$Main$CancelGraphTransition = {$: 'CancelGraphTransition'};
+var $author$project$Main$ConfirmGraphEpsilonTransition = {$: 'ConfirmGraphEpsilonTransition'};
+var $author$project$Main$ConfirmGraphTransition = {$: 'ConfirmGraphTransition'};
+var $author$project$Main$GraphTransitionSymbolChanged = function (a) {
+	return {$: 'GraphTransitionSymbolChanged', a: a};
+};
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$Main$viewGraphTransitionComposer = function (draft) {
+	var sourceLabel = 'q' + $elm$core$String$fromInt(draft.from);
+	var _v0 = draft.to_;
+	if (_v0.$ === 'Nothing') {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Priama tvorba prechodu zo stavu ' + sourceLabel)
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#c9b29a]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Zdrojovy stav je vybrany. Klikni v grafe na cielovy stav a potom zadaj symbol alebo epsilon.')
+										]))
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+									$elm$html$Html$Events$onClick($author$project$Main$CancelGraphTransition)
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$i,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('fas fa-xmark')
+										]),
+									_List_Nil),
+									$elm$html$Html$text('Zrusit')
+								]))
+						]))
+				]));
+	} else {
+		var targetState = _v0.a;
+		var targetLabel = 'q' + $elm$core$String$fromInt(targetState);
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Novy prechod ' + (sourceLabel + (' -> ' + targetLabel)))
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#c9b29a]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Zadaj symbol prechodu. Ak chces epsilon prechod, napis epsilon alebo pouzi samostatne tlacidlo.')
+										]))
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+									$elm$html$Html$Events$onClick($author$project$Main$CancelGraphTransition)
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$i,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('fas fa-xmark')
+										]),
+									_List_Nil),
+									$elm$html$Html$text('Zrusit')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr),auto,auto]')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$input,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400'),
+									$elm$html$Html$Attributes$value(draft.symbol),
+									$elm$html$Html$Events$onInput($author$project$Main$GraphTransitionSymbolChanged),
+									$elm$html$Html$Attributes$placeholder('napr. 0, a, x alebo epsilon')
+								]),
+							_List_Nil),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]'),
+									$elm$html$Html$Events$onClick($author$project$Main$ConfirmGraphTransition)
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$i,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('fas fa-plus mr-2')
+										]),
+									_List_Nil),
+									$elm$html$Html$text('Pridat prechod')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
+									$elm$html$Html$Events$onClick($author$project$Main$ConfirmGraphEpsilonTransition)
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('epsilon prechod')
+								]))
+						]))
+				]));
+	}
+};
 var $elm$core$Maybe$andThen = F2(
 	function (callback, maybeValue) {
 		if (maybeValue.$ === 'Just') {
@@ -9780,7 +11243,6 @@ var $elm$svg$Svg$defs = $elm$svg$Svg$trustedNode('defs');
 var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
 var $elm$svg$Svg$Attributes$fontSize = _VirtualDom_attribute('font-size');
 var $elm$svg$Svg$Attributes$fontWeight = _VirtualDom_attribute('font-weight');
-var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$svg$Svg$g = $elm$svg$Svg$trustedNode('g');
 var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $elm$svg$Svg$Attributes$id = _VirtualDom_attribute('id');
@@ -9803,10 +11265,20 @@ var $author$project$View$Graph$onMouseDown = function (stateId) {
 		A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float));
 };
 var $elm$svg$Svg$Attributes$orient = _VirtualDom_attribute('orient');
+var $author$project$View$Graph$StartPan = F2(
+	function (a, b) {
+		return {$: 'StartPan', a: a, b: b};
+	});
+var $author$project$View$Graph$panStartDecoder = A3(
+	$elm$json$Json$Decode$map2,
+	$author$project$View$Graph$StartPan,
+	A2($elm$json$Json$Decode$field, 'clientX', $elm$json$Json$Decode$float),
+	A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float));
 var $elm$svg$Svg$path = $elm$svg$Svg$trustedNode('path');
 var $elm$svg$Svg$pattern = $elm$svg$Svg$trustedNode('pattern');
 var $elm$svg$Svg$Attributes$patternUnits = _VirtualDom_attribute('patternUnits');
 var $elm$svg$Svg$Attributes$pointerEvents = _VirtualDom_attribute('pointer-events');
+var $elm$svg$Svg$Attributes$preserveAspectRatio = _VirtualDom_attribute('preserveAspectRatio');
 var $elm$svg$Svg$Attributes$r = _VirtualDom_attribute('r');
 var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
 var $elm$svg$Svg$Attributes$refX = _VirtualDom_attribute('refX');
@@ -9818,136 +11290,17 @@ var $elm$svg$Svg$Attributes$strokeDasharray = _VirtualDom_attribute('stroke-dash
 var $elm$svg$Svg$Attributes$strokeLinecap = _VirtualDom_attribute('stroke-linecap');
 var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
-var $elm$core$List$takeReverse = F3(
-	function (n, list, kept) {
-		takeReverse:
-		while (true) {
-			if (n <= 0) {
-				return kept;
-			} else {
-				if (!list.b) {
-					return kept;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs,
-						$temp$kept = A2($elm$core$List$cons, x, kept);
-					n = $temp$n;
-					list = $temp$list;
-					kept = $temp$kept;
-					continue takeReverse;
-				}
-			}
-		}
-	});
-var $elm$core$List$takeTailRec = F2(
-	function (n, list) {
-		return $elm$core$List$reverse(
-			A3($elm$core$List$takeReverse, n, list, _List_Nil));
-	});
-var $elm$core$List$takeFast = F3(
-	function (ctr, n, list) {
-		if (n <= 0) {
-			return _List_Nil;
-		} else {
-			var _v0 = _Utils_Tuple2(n, list);
-			_v0$1:
-			while (true) {
-				_v0$5:
-				while (true) {
-					if (!_v0.b.b) {
-						return list;
-					} else {
-						if (_v0.b.b.b) {
-							switch (_v0.a) {
-								case 1:
-									break _v0$1;
-								case 2:
-									var _v2 = _v0.b;
-									var x = _v2.a;
-									var _v3 = _v2.b;
-									var y = _v3.a;
-									return _List_fromArray(
-										[x, y]);
-								case 3:
-									if (_v0.b.b.b.b) {
-										var _v4 = _v0.b;
-										var x = _v4.a;
-										var _v5 = _v4.b;
-										var y = _v5.a;
-										var _v6 = _v5.b;
-										var z = _v6.a;
-										return _List_fromArray(
-											[x, y, z]);
-									} else {
-										break _v0$5;
-									}
-								default:
-									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
-										var _v7 = _v0.b;
-										var x = _v7.a;
-										var _v8 = _v7.b;
-										var y = _v8.a;
-										var _v9 = _v8.b;
-										var z = _v9.a;
-										var _v10 = _v9.b;
-										var w = _v10.a;
-										var tl = _v10.b;
-										return (ctr > 1000) ? A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
-									} else {
-										break _v0$5;
-									}
-							}
-						} else {
-							if (_v0.a === 1) {
-								break _v0$1;
-							} else {
-								break _v0$5;
-							}
-						}
-					}
-				}
-				return list;
-			}
-			var _v1 = _v0.b;
-			var x = _v1.a;
-			return _List_fromArray(
-				[x]);
-		}
-	});
-var $elm$core$List$take = F2(
-	function (n, list) {
-		return A3($elm$core$List$takeFast, 0, n, list);
-	});
 var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
 var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
 var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
+var $author$project$View$Graph$Wheel = function (a) {
+	return {$: 'Wheel', a: a};
+};
+var $author$project$View$Graph$wheelDecoder = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$View$Graph$Wheel,
+	A2($elm$json$Json$Decode$field, 'deltaY', $elm$json$Json$Decode$float));
 var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
 var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
@@ -9955,8 +11308,8 @@ var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
 var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
 var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
 var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
-var $author$project$View$Graph$view = F2(
-	function (highlight, a) {
+var $author$project$View$Graph$view = F3(
+	function (canvasViewBox, highlight, a) {
 		var pos = function (s) {
 			var _v10 = A2($elm$core$Dict$get, s, a.positions);
 			if (_v10.$ === 'Just') {
@@ -10438,9 +11791,11 @@ var $author$project$View$Graph$view = F2(
 			_List_fromArray(
 				[
 					$elm$svg$Svg$Attributes$width('100%'),
-					$elm$svg$Svg$Attributes$height('840'),
-					$elm$svg$Svg$Attributes$viewBox('0 0 1220 840'),
-					$elm$svg$Svg$Attributes$id('automaton-canvas')
+					$elm$svg$Svg$Attributes$height('100%'),
+					$elm$svg$Svg$Attributes$viewBox(canvasViewBox),
+					$elm$svg$Svg$Attributes$id('automaton-canvas'),
+					$elm$svg$Svg$Attributes$preserveAspectRatio('xMidYMid slice'),
+					A2($elm$svg$Svg$Events$on, 'wheel', $author$project$View$Graph$wheelDecoder)
 				]),
 			_List_fromArray(
 				[
@@ -10591,12 +11946,10 @@ var $author$project$View$Graph$view = F2(
 					$elm$svg$Svg$rect,
 					_List_fromArray(
 						[
-							$elm$svg$Svg$Attributes$x('12'),
-							$elm$svg$Svg$Attributes$y('12'),
-							$elm$svg$Svg$Attributes$width('1196'),
-							$elm$svg$Svg$Attributes$height('816'),
-							$elm$svg$Svg$Attributes$rx('24'),
-							$elm$svg$Svg$Attributes$ry('24'),
+							$elm$svg$Svg$Attributes$x('-5000'),
+							$elm$svg$Svg$Attributes$y('-5000'),
+							$elm$svg$Svg$Attributes$width('10000'),
+							$elm$svg$Svg$Attributes$height('10000'),
 							$elm$svg$Svg$Attributes$fill('rgba(28,22,18,0.96)')
 						]),
 					_List_Nil),
@@ -10604,28 +11957,26 @@ var $author$project$View$Graph$view = F2(
 					$elm$svg$Svg$rect,
 					_List_fromArray(
 						[
-							$elm$svg$Svg$Attributes$x('12'),
-							$elm$svg$Svg$Attributes$y('12'),
-							$elm$svg$Svg$Attributes$width('1196'),
-							$elm$svg$Svg$Attributes$height('816'),
-							$elm$svg$Svg$Attributes$rx('24'),
-							$elm$svg$Svg$Attributes$ry('24'),
-							$elm$svg$Svg$Attributes$fill('url(#grid)')
+							$elm$svg$Svg$Attributes$x('-5000'),
+							$elm$svg$Svg$Attributes$y('-5000'),
+							$elm$svg$Svg$Attributes$width('10000'),
+							$elm$svg$Svg$Attributes$height('10000'),
+							$elm$svg$Svg$Attributes$fill('url(#grid)'),
+							$elm$svg$Svg$Attributes$cursor('grab'),
+							A2($elm$svg$Svg$Events$on, 'mousedown', $author$project$View$Graph$panStartDecoder)
 						]),
 					_List_Nil),
 					A2(
 					$elm$svg$Svg$rect,
 					_List_fromArray(
 						[
-							$elm$svg$Svg$Attributes$x('12'),
-							$elm$svg$Svg$Attributes$y('12'),
-							$elm$svg$Svg$Attributes$width('1196'),
-							$elm$svg$Svg$Attributes$height('816'),
-							$elm$svg$Svg$Attributes$rx('24'),
-							$elm$svg$Svg$Attributes$ry('24'),
+							$elm$svg$Svg$Attributes$x('-5000'),
+							$elm$svg$Svg$Attributes$y('-5000'),
+							$elm$svg$Svg$Attributes$width('10000'),
+							$elm$svg$Svg$Attributes$height('10000'),
 							$elm$svg$Svg$Attributes$fill('none'),
-							$elm$svg$Svg$Attributes$stroke('rgba(120,89,65,0.58)'),
-							$elm$svg$Svg$Attributes$strokeWidth('1.2')
+							$elm$svg$Svg$Attributes$stroke('rgba(120,89,65,0.22)'),
+							$elm$svg$Svg$Attributes$strokeWidth('1')
 						]),
 					_List_Nil),
 					startArrow,
@@ -10639,497 +11990,127 @@ var $author$project$View$Graph$view = F2(
 					A2($elm$core$List$map, node, a.states))
 				]));
 	});
-var $author$project$Main$displaySymbol = function (symbol) {
-	return $elm$core$String$isEmpty(symbol) ? 'ε' : symbol;
+var $author$project$Main$viewBoxForCanvas = function (canvasView) {
+	var width = $author$project$Main$graphBaseWidth / canvasView.zoom;
+	var height = $author$project$Main$graphBaseHeight / canvasView.zoom;
+	return A2(
+		$elm$core$String$join,
+		' ',
+		_List_fromArray(
+			[
+				$elm$core$String$fromFloat(canvasView.panX),
+				$elm$core$String$fromFloat(canvasView.panY),
+				$elm$core$String$fromFloat(width),
+				$elm$core$String$fromFloat(height)
+			]));
 };
-var $author$project$Main$viewTopStat = F4(
-	function (labelText, valueText, icon, subtitleText) {
+var $author$project$Main$viewGraphWorkspace = F2(
+	function (model, automaton) {
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('rounded-3xl border border-[#45352b] bg-[#1a1411]/88 p-4')
+					$elm$html$Html$Attributes$class('min-h-0 flex-1 overflow-hidden rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-4 shadow-2xl shadow-black/20')
 				]),
 			_List_fromArray(
 				[
-					A2(
+					$elm$core$List$isEmpty(automaton.states) ? A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('flex items-start justify-between gap-4')
+							$elm$html$Html$Attributes$class('grid h-full place-items-center rounded-[28px] border border-dashed border-[#4b392d] bg-[#16110f]/70 text-center')
 						]),
 					_List_fromArray(
 						[
 							A2(
 							$elm$html$Html$div,
-							_List_Nil,
 							_List_fromArray(
 								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('text-xs font-semibold uppercase tracking-[0.16em] text-[#bca48d]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(labelText)
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('mt-3 text-3xl font-black text-[#f5ede3]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(valueText)
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('mt-2 text-sm leading-6 text-[#bca48d]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(subtitleText)
-										]))
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-200 ring-1 ring-amber-500/20')
+									$elm$html$Html$Attributes$class('max-w-md px-6')
 								]),
 							_List_fromArray(
 								[
 									A2(
-									$elm$html$Html$i,
+									$elm$html$Html$div,
 									_List_fromArray(
 										[
-											$elm$html$Html$Attributes$class(icon + ' text-lg')
+											$elm$html$Html$Attributes$class('mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20')
 										]),
-									_List_Nil)
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$i,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('fas fa-project-diagram text-2xl')
+												]),
+											_List_Nil)
+										])),
+									A2(
+									$elm$html$Html$h4,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-5 text-2xl font-bold text-[#f5ede3]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Platno je pripravene')
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-3 text-sm leading-7 text-[#bca48d]')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy.')
+										]))
+								]))
+						])) : A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('graph-shell relative h-full overflow-hidden rounded-[28px] border border-[#3a2c23] bg-[#171311]/50'),
+							$elm$html$Html$Attributes$title('Tahaj prazdne miesto na platne pre posun pohladu.')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$map,
+							$author$project$Main$GraphMsg,
+							A3(
+								$author$project$View$Graph$view,
+								$author$project$Main$viewBoxForCanvas(model.canvasView),
+								$author$project$Main$graphHighlight(model),
+								automaton)),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('pointer-events-none absolute bottom-4 left-4 rounded-2xl border border-[#45352b] bg-[#120f0d]/85 px-4 py-2 text-xs font-semibold text-[#c9b29a] shadow-lg shadow-black/20')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Tahaj prazdne miesto pre posun, koliesko alebo tlacidla hore menia zoom.')
 								]))
 						]))
 				]));
 	});
-var $author$project$Main$viewBottomStats = function (automaton) {
-	var hasEpsilon = $author$project$Automaton$Validate$hasEpsilonTransitions(automaton);
-	var duplicateGroups = $author$project$Automaton$Validate$duplicateTransitionGroups(automaton);
+var $author$project$Main$viewModeBadge = function (automaton) {
 	var deterministic = $author$project$Automaton$Validate$isDeterministic(automaton);
-	var alphabetList = $author$project$Main$usedAlphabet(automaton);
-	var alphabetPreview = $elm$core$List$isEmpty(alphabetList) ? '{}' : ('{ ' + (A2($elm$core$String$join, ', ', alphabetList) + ' }'));
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('mt-6 rounded-[32px] border border-[#45352b] bg-[#1a1411]/88 p-5 shadow-2xl shadow-black/10')
+				$elm$html$Html$Attributes$class(
+				'rounded-2xl border px-4 py-3 text-sm font-bold ' + (deterministic ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200' : 'border-amber-500/25 bg-amber-500/10 text-amber-100'))
 			]),
 		_List_fromArray(
 			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('mb-4')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$h3,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-xl font-bold text-[#f5ede3]')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Statisticke udaje')
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#bca48d]')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Prehlad aktualneho automatu presunuty pod platno.')
-							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('grid gap-4 xl:grid-cols-5')
-					]),
-				_List_fromArray(
-					[
-						A4(
-						$author$project$Main$viewTopStat,
-						'Pocet stavov',
-						$elm$core$String$fromInt(
-							$elm$core$List$length(automaton.states)),
-						'fas fa-circle',
-						'Zakladne uzly automatu'),
-						A4(
-						$author$project$Main$viewTopStat,
-						'Pocet prechodov',
-						$elm$core$String$fromInt(
-							$elm$core$List$length(automaton.transitions)),
-						'fas fa-random',
-						'Vsetky definovane hrany'),
-						A4(
-						$author$project$Main$viewTopStat,
-						'Pouzita abeceda',
-						$elm$core$String$fromInt(
-							$elm$core$List$length(alphabetList)),
-						'fas fa-font',
-						alphabetPreview),
-						A4(
-						$author$project$Main$viewTopStat,
-						'Start',
-						A2(
-							$elm$core$Maybe$withDefault,
-							'-',
-							A2(
-								$elm$core$Maybe$map,
-								function (s) {
-									return 'q' + $elm$core$String$fromInt(s);
-								},
-								automaton.start)),
-						'fas fa-play',
-						'Vstupny stav automatu'),
-						A4(
-						$author$project$Main$viewTopStat,
-						'Rezim',
-						deterministic ? 'DFA' : 'NFA',
-						'fas fa-code-branch',
-						deterministic ? 'Bez ε prechodov a bez duplicitnych hran pre rovnaky symbol' : 'Obsahuje ε prechody alebo viacnasobne ciele pre rovnaky symbol')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('mt-4 rounded-3xl border border-[#45352b] bg-[#120f0d]/80 p-4')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('flex items-center justify-between gap-3')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Kontrola deterministickosti')
-									])),
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class(
-										'rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ' + (deterministic ? 'border-[#c48a4a]/30 bg-[#8c5d33]/20 text-[#f0d4ae]' : 'border-[#8a5938]/35 bg-[#5a3825]/25 text-[#d9baa0]'))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(
-										deterministic ? 'Deterministicky' : 'Nedeterministicky')
-									]))
-							])),
-						deterministic ? A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('mt-3 text-sm leading-6 text-[#bca48d]')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Automat nema ziadny stav, z ktoreho by viedlo viac prechodov na rovnaky symbol, ani ziadny ε prechod.')
-							])) : A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('mt-3 space-y-2')
-							]),
-						_Utils_ap(
-							hasEpsilon ? _List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Automat obsahuje aspon jeden ε prechod, preto sa sprava ako NFA.')
-										]))
-								]) : _List_Nil,
-							A2(
-								$elm$core$List$map,
-								function (group) {
-									return A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(
-												'q' + ($elm$core$String$fromInt(group.from) + (' ma pre symbol \'' + ($author$project$Main$displaySymbol(group.symbol) + ('\' viac cielov: ' + A2(
-													$elm$core$String$join,
-													', ',
-													A2(
-														$elm$core$List$map,
-														function (target) {
-															return 'q' + $elm$core$String$fromInt(target);
-														},
-														group.targets)))))))
-											]));
-								},
-								duplicateGroups)))
-					]))
+				$elm$html$Html$text(
+				deterministic ? 'DFA' : 'NFA')
 			]));
-};
-var $author$project$Main$CancelGraphTransition = {$: 'CancelGraphTransition'};
-var $author$project$Main$ConfirmGraphEpsilonTransition = {$: 'ConfirmGraphEpsilonTransition'};
-var $author$project$Main$ConfirmGraphTransition = {$: 'ConfirmGraphTransition'};
-var $author$project$Main$GraphTransitionSymbolChanged = function (a) {
-	return {$: 'GraphTransitionSymbolChanged', a: a};
-};
-var $elm$html$Html$input = _VirtualDom_node('input');
-var $elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var $elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var $elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
-	});
-var $elm$html$Html$Events$targetValue = A2(
-	$elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	$elm$json$Json$Decode$string);
-var $elm$html$Html$Events$onInput = function (tagger) {
-	return A2(
-		$elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			$elm$json$Json$Decode$map,
-			$elm$html$Html$Events$alwaysStop,
-			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
-};
-var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
-var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$Main$viewGraphTransitionComposer = function (draft) {
-	var sourceLabel = 'q' + $elm$core$String$fromInt(draft.from);
-	var _v0 = draft.to_;
-	if (_v0.$ === 'Nothing') {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Priama tvorba prechodu zo stavu ' + sourceLabel)
-										])),
-									A2(
-									$elm$html$Html$p,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#c9b29a]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Zdrojovy stav je vybrany. Klikni v grafe na cielovy stav a potom zadaj symbol alebo epsilon.')
-										]))
-								])),
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
-									$elm$html$Html$Events$onClick($author$project$Main$CancelGraphTransition)
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$i,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('fas fa-xmark')
-										]),
-									_List_Nil),
-									$elm$html$Html$text('Zrusit')
-								]))
-						]))
-				]));
-	} else {
-		var targetState = _v0.a;
-		var targetLabel = 'q' + $elm$core$String$fromInt(targetState);
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('mb-4 rounded-[28px] border border-amber-500/20 bg-[#16110f]/90 p-4 shadow-lg shadow-black/10')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('text-sm font-semibold text-[#f5ede3]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Novy prechod ' + (sourceLabel + (' -> ' + targetLabel)))
-										])),
-									A2(
-									$elm$html$Html$p,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('mt-1 text-sm leading-6 text-[#c9b29a]')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Zadaj symbol prechodu. Ak chces epsilon prechod, napis epsilon alebo pouzi samostatne tlacidlo.')
-										]))
-								])),
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
-									$elm$html$Html$Events$onClick($author$project$Main$CancelGraphTransition)
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$i,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('fas fa-xmark')
-										]),
-									_List_Nil),
-									$elm$html$Html$text('Zrusit')
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr),auto,auto]')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$input,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('w-full rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm text-[#f5ede3] outline-none transition placeholder:text-[#7f6756] focus:border-amber-400'),
-									$elm$html$Html$Attributes$value(draft.symbol),
-									$elm$html$Html$Events$onInput($author$project$Main$GraphTransitionSymbolChanged),
-									$elm$html$Html$Attributes$placeholder('napr. 0, a, x alebo epsilon')
-								]),
-							_List_Nil),
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('rounded-2xl bg-[#a86434] px-4 py-3 text-sm font-semibold text-[#f7ead9] transition hover:bg-[#b77745]'),
-									$elm$html$Html$Events$onClick($author$project$Main$ConfirmGraphTransition)
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$i,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('fas fa-plus mr-2')
-										]),
-									_List_Nil),
-									$elm$html$Html$text('Pridat prechod')
-								])),
-							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('rounded-2xl border border-[#4a392f] bg-[#120f0d] px-4 py-3 text-sm font-semibold text-[#eadbcf] transition hover:border-amber-400 hover:text-[#f7ead9]'),
-									$elm$html$Html$Events$onClick($author$project$Main$ConfirmGraphEpsilonTransition)
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$i,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('fas fa-wave-square mr-2')
-										]),
-									_List_Nil),
-									$elm$html$Html$text('epsilon prechod')
-								]))
-						]))
-				]));
-	}
 };
 var $author$project$Main$viewToolbarButton = F4(
 	function (icon, labelText, extra, buttonMsg) {
@@ -11158,7 +12139,7 @@ var $author$project$Main$viewMain = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('flex-1 bg-[#120f0d]')
+				$elm$html$Html$Attributes$class('flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#120f0d]')
 			]),
 		_List_fromArray(
 			[
@@ -11166,7 +12147,7 @@ var $author$project$Main$viewMain = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('h-full overflow-y-auto')
+						$elm$html$Html$Attributes$class('shrink-0 border-b border-[#2b211b] bg-[#15110f]/95 px-6 py-4')
 					]),
 				_List_fromArray(
 					[
@@ -11174,136 +12155,88 @@ var $author$project$Main$viewMain = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('mx-auto max-w-[1500px] p-6')
+								$elm$html$Html$Attributes$class('flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between')
 							]),
 						_List_fromArray(
 							[
 								A2(
 								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('rounded-[32px] border border-[#3a2c23] bg-[#1a1512]/90 p-5 shadow-2xl shadow-black/20')
-									]),
+								_List_Nil,
 								_List_fromArray(
 									[
 										A2(
-										$elm$html$Html$div,
+										$elm$html$Html$h3,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between')
+												$elm$html$Html$Attributes$class('text-xl font-bold text-[#f5ede3]')
 											]),
 										_List_fromArray(
 											[
-												A2(
-												$elm$html$Html$div,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$elm$html$Html$h3,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('text-xl font-bold text-[#f5ede3]')
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Platno automatu')
-															]))
-													])),
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('flex flex-wrap gap-3')
-													]),
-												_List_fromArray(
-													[
-														A4($author$project$Main$viewToolbarButton, 'fas fa-book-open', 'Guide', 'bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] hover:brightness-110', $author$project$Main$ToggleGuide),
-														A4($author$project$Main$viewToolbarButton, 'fas fa-undo', 'Undo', 'bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]', $author$project$Main$Undo),
-														A4($author$project$Main$viewToolbarButton, 'fas fa-redo', 'Redo', 'bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]', $author$project$Main$Redo)
-													]))
-											])),
-										function () {
-										var _v0 = model.graphTransitionDraft;
-										if (_v0.$ === 'Just') {
-											var draft = _v0.a;
-											return $author$project$Main$viewGraphTransitionComposer(draft);
-										} else {
-											return $elm$html$Html$text('');
-										}
-									}(),
-										$elm$core$List$isEmpty(automaton.states) ? A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('grid min-h-[840px] place-items-center rounded-[28px] border border-dashed border-[#4b392d] bg-[#16110f]/70 text-center')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('max-w-md px-6')
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$elm$html$Html$div,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/20')
-															]),
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$i,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('fas fa-project-diagram text-2xl')
-																	]),
-																_List_Nil)
-															])),
-														A2(
-														$elm$html$Html$h4,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('mt-5 text-2xl font-bold text-[#f5ede3]')
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Platno je pripravene')
-															])),
-														A2(
-														$elm$html$Html$p,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('mt-3 text-sm leading-7 text-[#bca48d]')
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Zacni pridanim prveho stavu v lavom paneli. Potom dopln prechody a spusti simulaciu alebo algoritmy.')
-															]))
-													]))
-											])) : A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('graph-shell overflow-hidden rounded-[28px] border border-[#3a2c23] bg-[#171311]/50 p-3')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$map,
-												$author$project$Main$GraphMsg,
-												A2(
-													$author$project$View$Graph$view,
-													$author$project$Main$graphHighlight(model),
-													automaton))
+												$elm$html$Html$text('Platno automatu')
 											]))
 									])),
-								$author$project$Main$viewBottomStats(automaton)
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex flex-wrap items-center gap-3')
+									]),
+								_Utils_ap(
+									_List_fromArray(
+										[
+											A3($author$project$Main$viewCanvasControlButton, 'fas fa-minus', 'Oddialit', $author$project$Main$CanvasZoomOut),
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('rounded-2xl border border-[#45352b] bg-[#211914] px-4 py-3 text-sm font-semibold text-[#eadbcf]')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(
+													$elm$core$String$fromInt(
+														$elm$core$Basics$round(model.canvasView.zoom * 100)) + '%')
+												])),
+											A3($author$project$Main$viewCanvasControlButton, 'fas fa-plus', 'Priblizit', $author$project$Main$CanvasZoomIn),
+											A3($author$project$Main$viewCanvasControlButton, 'fas fa-crosshairs', 'Reset pohlad', $author$project$Main$ResetCanvasView),
+											A4($author$project$Main$viewToolbarButton, 'fas fa-book-open', 'Guide', 'bg-gradient-to-r from-[#f59e0b] to-[#c26a2d] text-[#1b120e] hover:brightness-110', $author$project$Main$ToggleGuide),
+											A4($author$project$Main$viewToolbarButton, 'fas fa-undo', 'Undo', 'bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]', $author$project$Main$Undo),
+											A4($author$project$Main$viewToolbarButton, 'fas fa-redo', 'Redo', 'bg-[#2a201a] text-[#f5ede3] hover:bg-[#3a2c23]', $author$project$Main$Redo)
+										]),
+									_List_fromArray(
+										[
+											$author$project$Main$viewModeBadge(automaton)
+										])))
 							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('relative min-h-0 flex-1 overflow-hidden p-5')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex h-full min-h-0 flex-col')
+							]),
+						_List_fromArray(
+							[
+								function () {
+								var _v0 = model.graphTransitionDraft;
+								if (_v0.$ === 'Just') {
+									var draft = _v0.a;
+									return $author$project$Main$viewGraphTransitionComposer(draft);
+								} else {
+									return $elm$html$Html$text('');
+								}
+							}(),
+								A2($author$project$Main$viewGraphWorkspace, model, automaton)
+							])),
+						$author$project$Main$viewConsolePanel(model)
 					]))
 			]));
 };
@@ -12248,13 +13181,6 @@ var $author$project$Main$viewEditorPanel = F2(
 															]),
 														_List_fromArray(
 															[
-																A2(
-																$elm$html$Html$i,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$class('fas fa-wave-square mr-2')
-																	]),
-																_List_Nil),
 																$elm$html$Html$text('Pridat ε prechod')
 															]))
 													]))
@@ -12825,7 +13751,7 @@ var $author$project$Main$viewSidebar = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('w-[400px] shrink-0 border-r border-[#3a2c23] bg-[#15110f]/95 backdrop-blur-xl flex flex-col')
+				$elm$html$Html$Attributes$class('flex h-full w-[400px] shrink-0 flex-col overflow-hidden border-r border-[#3a2c23] bg-[#15110f]/95 backdrop-blur-xl')
 			]),
 		_List_fromArray(
 			[
@@ -12977,7 +13903,7 @@ var $author$project$Main$view = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('min-h-screen bg-[#120f0d] text-[#f5ede3]')
+				$elm$html$Html$Attributes$class('h-screen overflow-hidden bg-[#120f0d] text-[#f5ede3]')
 			]),
 		_List_fromArray(
 			[
@@ -12985,7 +13911,7 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('flex min-h-screen')
+						$elm$html$Html$Attributes$class('flex h-screen overflow-hidden')
 					]),
 				_List_fromArray(
 					[
@@ -13003,7 +13929,8 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 		subscriptions: $author$project$Main$subscriptions,
 		update: F2(
 			function (message, model) {
-				var updatedModel = A2($author$project$Main$update, message, model);
+				var rawUpdatedModel = A2($author$project$Main$update, message, model);
+				var updatedModel = A3($author$project$Main$appendConsoleForMessage, message, model, rawUpdatedModel);
 				return _Utils_Tuple2(
 					updatedModel,
 					$elm$core$Platform$Cmd$batch(
