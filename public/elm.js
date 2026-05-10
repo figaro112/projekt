@@ -12240,7 +12240,6 @@ var $author$project$Main$viewMain = function (model) {
 					]))
 			]));
 };
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $author$project$Main$AlgoDataSub = {$: 'AlgoDataSub'};
 var $author$project$Main$AlgoProductSub = {$: 'AlgoProductSub'};
 var $author$project$Main$ComplementDfa = {$: 'ComplementDfa'};
@@ -13205,38 +13204,6 @@ var $author$project$Main$viewEditorPanel = F2(
 				}()
 				]));
 	});
-var $author$project$Main$viewMiniMetric = F2(
-	function (labelText, valueText) {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('rounded-2xl border border-[#4a392f] bg-[#261e1a]/90 p-3')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('text-[11px] uppercase tracking-[0.16em] text-[#bca48d]')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(labelText)
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('mt-2 text-lg font-bold text-[#f5ede3]')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(valueText)
-						]))
-				]));
-	});
 var $author$project$Main$CheckWord = {$: 'CheckWord'};
 var $author$project$Main$ResetSimulation = {$: 'ResetSimulation'};
 var $author$project$Main$SetPlaybackSpeed = function (a) {
@@ -13746,7 +13713,6 @@ var $author$project$Main$viewTabButton = F4(
 	});
 var $author$project$Main$viewSidebar = function (model) {
 	var automaton = model.history.present;
-	var alphabetChips = $author$project$Main$usedAlphabet(automaton);
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -13755,106 +13721,6 @@ var $author$project$Main$viewSidebar = function (model) {
 			]),
 		_List_fromArray(
 			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('p-6 border-b border-[#3a2c23]')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('rounded-3xl border border-[#3a2c23] bg-gradient-to-br from-[#241d19] via-[#191411] to-[#120f0d] p-5 shadow-2xl')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('flex items-start justify-between gap-4')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$div,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$div,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300')
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$elm$html$Html$i,
-														_List_fromArray(
-															[
-																$elm$html$Html$Attributes$class('fas fa-star')
-															]),
-														_List_Nil),
-														$elm$html$Html$text('Elm DFA Studio')
-													])),
-												A2(
-												$elm$html$Html$h1,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('mt-4 text-3xl font-black tracking-tight text-[#f5ede3]')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Simulator DFA')
-													]))
-											])),
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300 shadow-lg shadow-amber-500/10')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$i,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('fas fa-project-diagram text-xl')
-													]),
-												_List_Nil)
-											]))
-									])),
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('mt-5 grid grid-cols-3 gap-3')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$author$project$Main$viewMiniMetric,
-										'Stavy',
-										$elm$core$String$fromInt(
-											$elm$core$List$length(automaton.states))),
-										A2(
-										$author$project$Main$viewMiniMetric,
-										'Prechody',
-										$elm$core$String$fromInt(
-											$elm$core$List$length(automaton.transitions))),
-										A2(
-										$author$project$Main$viewMiniMetric,
-										'Abeceda',
-										$elm$core$String$fromInt(
-											$elm$core$List$length(alphabetChips)))
-									]))
-							]))
-					])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(

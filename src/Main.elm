@@ -2430,33 +2430,9 @@ viewSidebar model =
     let
         automaton =
             model.history.present
-
-        alphabetChips =
-            usedAlphabet automaton
     in
     div [ class "flex h-full w-[400px] shrink-0 flex-col overflow-hidden border-r border-[#3a2c23] bg-[#15110f]/95 backdrop-blur-xl" ]
-        [ div [ class "p-6 border-b border-[#3a2c23]" ]
-            [ div [ class "rounded-3xl border border-[#3a2c23] bg-gradient-to-br from-[#241d19] via-[#191411] to-[#120f0d] p-5 shadow-2xl" ]
-                [ div [ class "flex items-start justify-between gap-4" ]
-                    [ div []
-                        [ div [ class "inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300" ]
-                            [ i [ class "fas fa-star" ] []
-                            , text "Elm DFA Studio"
-                            ]
-                        , h1 [ class "mt-4 text-3xl font-black tracking-tight text-[#f5ede3]" ]
-                            [ text "Simulator DFA" ]
-                        ]
-                    , div [ class "flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300 shadow-lg shadow-amber-500/10" ]
-                        [ i [ class "fas fa-project-diagram text-xl" ] [] ]
-                    ]
-                , div [ class "mt-5 grid grid-cols-3 gap-3" ]
-                    [ viewMiniMetric "Stavy" (String.fromInt (List.length automaton.states))
-                    , viewMiniMetric "Prechody" (String.fromInt (List.length automaton.transitions))
-                    , viewMiniMetric "Abeceda" (String.fromInt (List.length alphabetChips))
-                    ]
-                ]
-            ]
-        , div [ class "px-4 pt-4" ]
+        [ div [ class "px-4 pt-4" ]
             [ div [ class "rounded-2xl border border-[#45352b] bg-[#1a1411]/85 p-1.5 flex gap-1" ]
                 [ viewTabButton EditorTab "fas fa-edit" "Editor" model.selectedTab
                 , viewTabButton AlgorithmsTab "fas fa-cogs" "Algoritmy" model.selectedTab
@@ -2474,14 +2450,6 @@ viewSidebar model =
                 SimulationTab ->
                     viewSimulationPanel model
             ]
-        ]
-
-
-viewMiniMetric : String -> String -> Html Msg
-viewMiniMetric labelText valueText =
-    div [ class "rounded-2xl border border-[#4a392f] bg-[#261e1a]/90 p-3" ]
-        [ div [ class "text-[11px] uppercase tracking-[0.16em] text-[#bca48d]" ] [ text labelText ]
-        , div [ class "mt-2 text-lg font-bold text-[#f5ede3]" ] [ text valueText ]
         ]
 
 
